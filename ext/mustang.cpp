@@ -1,34 +1,58 @@
 #include "v8.h"
-#include "string.h"
 #include "assert.h"
 
 #include "rice/Class.hpp"
 #include "rice/Module.hpp"
 #include "rice/String.hpp"
 #include "rice/Data_Type.hpp"
+#include "rice/Constructor.hpp"
 
 using namespace std;
-using namespace Rice;
 
-Object Mustang_evaluate(string source_code)
-{
-  v8::HandleScope handle_scope;
-  v8::Persistent<v8::Context> context = v8::Context::New();
-  v8::Context::Scope context_scope(context);
+namespace mustang {
+  using namespace v8;
 
-  v8::Handle<v8::String> source = v8::String::New(source_code.c_str());
-  v8::Handle<v8::Script> script = v8::Script::Compile(source);
-  v8::Handle<v8::Value> result = script->Run();
+  class Runtime {
+    Persistent<Context> context;
+  public:
+    Runtime();
+    ~Runtime();
+    Rice::Object Evaluate(string source_code);
+  };
 
-  context.Dispose();
+  Runtime::Runtime()
+  {
+    HandleScope handle_scope;
+    Handle<ObjectTemplate> global = ObjectTemplate::New();
+    this->context = Context::New(NULL, global);
+  }
 
-  v8::String::AsciiValue str(result);
-  return to_ruby(string(*str));
+  Runtime::~Runtime()
+  {
+    this->context.Dispose();
+  }
+
+  Rice::Object Runtime::Evaluate(string source_code)
+  {
+    HandleScope handle_scope;
+    Context::Scope context_scope(this->context);
+
+    Handle<String> source = String::New(source_code.c_str());
+    Handle<Script> script = Script::Compile(source);
+    Handle<Value> result = script->Run();
+
+    String::Utf8Value str(result);
+    return to_ruby(string(*str));
+  }
 }
+
+using namespace Rice;
 
 extern "C"
 void Init_mustang()
 {
   Module mMustang = define_module("Mustang");
-  mMustang.define_method("evaluate", &Mustang_evaluate);
+  Data_Type<mustang::Runtime> cMustangRuntime = mMustang.define_class<mustang::Runtime>("Runtime")
+    .define_constructor(Constructor<mustang::Runtime>())
+    .define_method("evaluate", &mustang::Runtime::Evaluate);
 }
