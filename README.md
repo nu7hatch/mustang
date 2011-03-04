@@ -36,6 +36,6 @@ For now it's only proof of concept. It implements very simple evaluation of java
   (if you want to have your own version, that is fine but bump version in a commit by itself I can ignore when I pull)
 * Send me a pull request. Bonus points for topic branches.
 
-== Copyright
+## Copyright
 
 Copyright (c) 2010 Kriss 'nu7hatch' Kowalik. See LICENSE for details.
