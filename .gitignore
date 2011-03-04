@@ -1,5 +1,9 @@
 *.so
 *.o
 *.log
-vendor
 Makefile
+\#.*
+.\#.*
+*.a
+*.exe
+build
