@@ -3,8 +3,7 @@
 begin
   require 'ore/tasks'
   Ore::Tasks.new
-rescue LoadError => e
-  STDERR.puts e.message
+rescue LoadError
   STDERR.puts "Run `gem install ore-tasks` to install 'ore/tasks'."
 end
 
@@ -23,7 +22,6 @@ task :default => :test
 begin 
   require 'metric_fu'
 rescue LoadError
-  STDERR.puts e.message
   STDERR.puts "Run `gem install metric_fu` to install Metric-Fu"
 end
 
