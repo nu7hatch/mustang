@@ -15,8 +15,8 @@ end
 libv8 = Dir[v8_dir + "/**/libv8.a"].first
 
 $LOCAL_LIBS << libv8
-$CFLAGS = '-Wall -lpthread'
 
 dir_config 'mustang'
 find_header 'v8.h', v8_dir + "/include/"
+have_header 'pthread'
 create_makefile 'mustang'
