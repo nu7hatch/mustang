@@ -34,6 +34,6 @@ Rake::RDocTask.new do |rdoc|
 end
 
 require 'rake/extensiontask'
-Rake::ExtensionTask.new("mustang") do |ext|
+Rake::ExtensionTask.new("engine") do |ext|
   ext.lib_dir = 'lib/mustang'
 end
