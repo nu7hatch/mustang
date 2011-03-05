@@ -2,6 +2,7 @@
 
 begin
   Ore::Specification.new do |gemspec|
+    gemspec.extensions << "ext/extconf.rb"
   end
 rescue NameError
   begin
