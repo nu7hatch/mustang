@@ -32,3 +32,8 @@ Rake::RDocTask.new do |rdoc|
   rdoc.rdoc_files.include('README*')
   rdoc.rdoc_files.include('lib/**/*.rb')
 end
+
+require 'rake/extensiontask'
+Rake::ExtensionTask.new("mustang") do |ext|
+  ext.lib_dir = 'lib/mustang'
+end

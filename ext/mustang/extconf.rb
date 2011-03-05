@@ -3,7 +3,7 @@ require 'mkmf-rice'
 
 arch = 'x64' # TODO: find out how to discover current arch
 
-v8_dir = File.expand_path("../../vendor/v8", __FILE__)
+v8_dir = File.expand_path("../../../vendor/v8", __FILE__)
 v8_ccflags = '-fPIC -fno-builtin-memcpy'
             
 Dir.chdir v8_dir do 
@@ -12,7 +12,7 @@ Dir.chdir v8_dir do
   ENV['CCFLAGS'] = ccflags;
 end
 
-libv8 = Dir[v8_dir + "/**/libv8.a"].first
+libv8 = Dir[v8_dir + "/**/**/libv8.a"].first
 
 $LOCAL_LIBS << libv8
 

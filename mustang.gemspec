@@ -2,8 +2,7 @@
 
 begin
   Ore::Specification.new do |gemspec|
-    gemspec.files += `git ls-files vendor/v8/`
-    gemspec.files += `git ls-files ext/`
+    gemspec.files += `git ls-files`
     gemspec.extensions << "ext/extconf.rb"
   end
 rescue NameError

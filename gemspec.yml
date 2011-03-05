@@ -16,3 +16,4 @@ development_dependencies:
   ore-tasks: ~> 0.4
   rspec: ~> 2.0
   mocha: >= 0.9
+  rake-compiler: ~> 0.7
