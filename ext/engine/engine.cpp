@@ -1,5 +1,4 @@
 #include "v8.h"
-#include "assert.h"
 
 #include "rice/Class.hpp"
 #include "rice/Module.hpp"
