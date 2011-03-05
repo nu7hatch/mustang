@@ -1,5 +1,16 @@
 require File.dirname(__FILE__) + '/spec_helper'
 
+USED_V8_VERSION = "3.1.6"
+ENGINE_VERSION = "0.0.2"
+
+describe Mustang do
+  describe ".version" do
+    it "returns current version" do
+      subject.version.should == ENGINE_VERSION
+    end
+  end
+end
+
 describe Mustang::Runtime do
   describe "#initialize" do
     context "when initial variables given" do
@@ -13,6 +24,11 @@ describe Mustang::Runtime do
   describe "#evaluate" do
     it "should have access to Ruby object" do
       subject.evaluate("Ruby.name").should == "Kernel"
+    end
+
+    it "should have access to v8 engine version" do
+      # XXX: remember to change this line after V8 version update!
+      subject.evaluate("Mustang.V8.version").should == USED_V8_VERSION
     end
 
     it "properly evaluates given js code" do
@@ -36,6 +52,5 @@ describe Mustang::Runtime do
       subject[:spam] = "eggs"
       subject.evaluate("spam").should == "eggs"
     end
-  end
-  
+  end  
 end
