@@ -48,15 +48,14 @@ namespace engine {
 using namespace Rice;
 
 extern "C"
-void Init_mustang()
+void Init_engine()
 {
   // module Mustang
   Module mMustang = define_module("Mustang");
   // module Mustang::Engine
   Module mMustangEngine = mMustang.define_module("Engine");
   // class Mustang::Engine::Runtime
-  Data_Type<engine::Runtime> cMustangEngineRuntime = mMustangEngine
-    .define_class<engine::Runtime>("Runtime")
+  Data_Type<engine::Runtime> cMustangEngineRuntime = mMustangEngine.define_class<engine::Runtime>("Runtime")
     .define_constructor(Constructor<engine::Runtime>())
     .define_method("evaluate", &engine::Runtime::Evaluate);
 }

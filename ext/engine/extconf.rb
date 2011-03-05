@@ -16,8 +16,8 @@ libv8 = Dir[v8_dir + "/**/**/libv8.a"].first
 
 $LOCAL_LIBS << libv8
 
-dir_config 'engine'
+dir_config 'mustang/engine'
 find_header 'v8.h', v8_dir + "/include/"
 have_header 'pthread'
 
-create_makefile 'engine'
+create_makefile 'mustang/engine'

@@ -8,6 +8,17 @@ rescue LoadError
 end
 
 begin
+  require 'rake/extensiontask'
+  Rake::ExtensionTask.new("engine") do |ext|
+    ext.lib_dir = 'lib/mustang'
+    ext.config_options << '--with-v8-include'
+    ext.config_options << '--with-v8-lib'
+  end
+rescue LoadError
+  STDERR.puts "Runb `gem install rake-compiler` to install 'rake-compiler'."
+end
+
+begin
   require 'rspec/core/rake_task'
   RSpec::Core::RakeTask.new(:spec)
 rescue LoadError
@@ -31,9 +42,4 @@ Rake::RDocTask.new do |rdoc|
   rdoc.title = "Mustang - V8 for ruby"
   rdoc.rdoc_files.include('README*')
   rdoc.rdoc_files.include('lib/**/*.rb')
-end
-
-require 'rake/extensiontask'
-Rake::ExtensionTask.new("engine") do |ext|
-  ext.lib_dir = 'lib/mustang'
 end
