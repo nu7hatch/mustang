@@ -16,7 +16,7 @@ namespace engine {
   public:
     Runtime();
     ~Runtime();
-    Rice::Object Evaluate(string source_code);
+    Rice::Object Evaluate(string source_code, string source_name);
   };
 
   Runtime::Runtime()
@@ -31,13 +31,15 @@ namespace engine {
     this->context.Dispose();
   }
 
-  Rice::Object Runtime::Evaluate(string source_code)
+  Rice::Object Runtime::Evaluate(string source_code, string source_name)
   {
     HandleScope handle_scope;
     Context::Scope context_scope(this->context);
 
     Handle<String> source = String::New(source_code.c_str());
-    Handle<Script> script = Script::Compile(source);
+    Handle<String> filename = String::New(source_name.c_str());
+
+    Handle<Script> script = Script::Compile(source, filename);
     Handle<Value> result = script->Run();
 
     String::Utf8Value str(result);
