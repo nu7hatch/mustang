@@ -1,23 +1,38 @@
 require 'rubygems'
+require 'rbconfig'
 require 'mkmf-rice'
 
-arch = 'x64' # TODO: find out how to discover current arch
-
-v8_dir = File.expand_path("../../../vendor/v8", __FILE__)
-v8_ccflags = '-fPIC -fno-builtin-memcpy'
-            
-Dir.chdir v8_dir do 
-  ccflags, ENV['CCFLAGS'] = ENV['CCFLAGS'], v8_ccflags
-  system "scons mode=release snapshot=off library=static arch=#{arch}" if Dir["**/libv8.a"].empty?
-  ENV['CCFLAGS'] = ccflags;
+def darwin?
+  RUBY_PLATFORM =~ /darwin/
 end
 
-libv8 = Dir[v8_dir + "/**/**/libv8.a"].first
+def cpu_x64?
+  if defined?(:RUBY_ENGINE) and RUBY_ENGINE == 'rbx'
+    RbConfig::MAKEFILE_CONFIG['build_cpu'] == 'x86_64' ||
+      RbConfig::MAKEFILE_CONFIG['ARCH_FLAG'] =~ /x86_64/
+  else
+    ['x'].pack('y').size == 8
+  end
+end
 
-$LOCAL_LIBS << libv8
+V8_DIR = File.expand_path("../../../vendor/v8", __FILE__)
+V8_ARCH = cpu_x64? ? 'x64' : 'ia32' 
+V8_FLAGS = '-fPIC -fno-builtin-memcpy'
+           
+# compile V8 engine... 
+Dir.chdir V8_DIR do 
+  if Dir["**/libv8.a"].empty?
+    defaults, ENV['CCFLAGS'] = ENV['CCFLAGS'], V8_FLAGS
+    system "scons mode=release snapshot=off library=static arch=#{V8_ARCH}" 
+    ENV['CCFLAGS'] = defaults;
+  end
+end
+
+$LOCAL_LIBS << Dir[File.join(V8_DIR, "**/**/libv8.a")].first
 
 dir_config 'mustang/engine'
-find_header 'v8.h', v8_dir + "/include/"
-have_header 'pthread'
+find_header 'v8.h', File.join(V8_DIR, "include")
+have_library 'pthread'
+have_library 'objc' if darwin?
 
 create_makefile 'mustang/engine'

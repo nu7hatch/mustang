@@ -27,7 +27,7 @@ rescue LoadError
   end
 end
 
-task :test => :spec
+task :test => [:compile, :spec]
 task :default => :test
 
 begin 
