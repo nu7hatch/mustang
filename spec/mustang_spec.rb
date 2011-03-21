@@ -22,15 +22,6 @@ describe Mustang::Runtime do
   end
 
   describe "#evaluate" do
-    it "should have access to Ruby object" do
-      subject.evaluate("Ruby.name").should == "Kernel"
-    end
-
-    it "should have access to v8 engine version" do
-      # XXX: remember to change this line after V8 version update!
-      subject.evaluate("Mustang.V8.version").should == USED_V8_VERSION
-    end
-
     it "properly evaluates given js code" do
       subject.evaluate("10+20").should == "30"
     end

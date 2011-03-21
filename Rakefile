@@ -9,13 +9,14 @@ end
 
 begin
   require 'rake/extensiontask'
-  Rake::ExtensionTask.new("engine") do |ext|
+  Rake::ExtensionTask.new("v8") do |ext|
     ext.lib_dir = 'lib/mustang'
+    ext.source_pattern = "*.{cpp,h}"
     ext.config_options << '--with-v8-include'
     ext.config_options << '--with-v8-lib'
   end
 rescue LoadError
-  STDERR.puts "Runb `gem install rake-compiler` to install 'rake-compiler'."
+  STDERR.puts "Run `gem install rake-compiler` to install 'rake-compiler'."
 end
 
 begin

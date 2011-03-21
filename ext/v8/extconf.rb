@@ -1,13 +1,12 @@
-require 'rubygems'
 require 'rbconfig'
-require 'mkmf-rice'
+require 'mkmf'
 
 def darwin?
   RUBY_PLATFORM =~ /darwin/
 end
 
 def cpu_x64?
-  if defined?(:RUBY_ENGINE) and RUBY_ENGINE == 'rbx'
+  if defined?(RUBY_ENGINE) and RUBY_ENGINE == 'rbx'
     RbConfig::MAKEFILE_CONFIG['build_cpu'] == 'x86_64' ||
       RbConfig::MAKEFILE_CONFIG['ARCH_FLAG'] =~ /x86_64/
   else
@@ -20,6 +19,7 @@ V8_ARCH = cpu_x64? ? 'x64' : 'ia32'
 V8_FLAGS = '-fPIC -fno-builtin-memcpy'
            
 # compile V8 engine... 
+
 Dir.chdir V8_DIR do 
   if Dir["**/libv8.a"].empty?
     defaults, ENV['CCFLAGS'] = ENV['CCFLAGS'], V8_FLAGS
@@ -28,11 +28,19 @@ Dir.chdir V8_DIR do
   end
 end
 
-$LOCAL_LIBS << Dir[File.join(V8_DIR, "**/**/libv8.a")].first
+# generate makefile for the gem...
 
-dir_config 'mustang/engine'
+dir_config 'mustang/v8'
 find_header 'v8.h', File.join(V8_DIR, "include")
 have_library 'pthread'
 have_library 'objc' if darwin?
 
-create_makefile 'mustang/engine'
+$LOCAL_LIBS << Dir[File.join(V8_DIR, "**/**/libv8.a")].first
+
+$CPPFLAGS += " -Wall" unless $CPPFLAGS.split.include? "-Wall"
+$CPPFLAGS += " -g" unless $CPPFLAGS.split.include? "-g"
+$CPPFLAGS += " -rdynamic" unless $CPPFLAGS.split.include? "-rdynamic"
+
+CONFIG['LDSHARED'] = '$(CXX) -shared' unless darwin?
+
+create_makefile 'v8'

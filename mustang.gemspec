@@ -3,7 +3,7 @@
 begin
   Ore::Specification.new do |gemspec|
     gemspec.files += `git ls-files`
-    gemspec.extensions << "ext/engine/extconf.rb"
+    gemspec.extensions << "ext/mustang/extconf.rb"
     gemspec.require_paths = ["lib", "ext"]
   end
 rescue NameError
