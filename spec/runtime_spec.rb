@@ -1,16 +1,5 @@
 require File.dirname(__FILE__) + '/spec_helper'
 
-USED_V8_VERSION = "3.1.6"
-ENGINE_VERSION = "0.0.2"
-
-describe Mustang do
-  #describe ".version" do
-  #  it "returns current version" do
-  #    subject.version.should == ENGINE_VERSION
-  #  end
-  #end
-end
-
 describe Mustang::Runtime do
   describe "#initialize" do
     context "when initial variables given" do

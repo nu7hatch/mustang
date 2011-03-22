@@ -58,6 +58,7 @@ static VALUE runtimeEvaluate(VALUE self, VALUE source, VALUE filename)
   Local<String> v8source = rbstr2v8(source);
   Local<String> v8filename = NIL_P(filename) ? cstr2v8("unknown") : rbstr2v8(filename);
 
+  // TODO: exception catching...
   Local<Script> script = Script::Compile(v8source, v8filename);
   Local<Value> result(script->Run());
 
