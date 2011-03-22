@@ -5,11 +5,14 @@
 #include <ruby.h>
 #include <string>
 
-#define cstr2v8(cstr) String::New(cstr)
-#define rbstr2v8(rbstr) cstr2v8(StringValuePtr(rbstr))
-
 using namespace v8;
 
+#define runtimeDefineScopes()					\
+  HandleScope scope;						\
+  Context::Scope context_scope(runtimeGetContext(self));
+
+/* This struct wraps Mustang::V8::Runtime class for ruby's garbage
+   collector. */
 struct runtime {
   Persistent<Context> context;
   // TODO: add v8 handles references...
