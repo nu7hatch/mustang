@@ -22,12 +22,18 @@ describe Mustang::Runtime do
     end
 
     context "when given script is broken" do
-      it "should catch exceptions" do
+      it "catches exceptions" do
         subject.evaluate("10+notexists", {}, "test.js")
         subject.errors.should_not be_empty
         subject.errors.first.snippet.should == "10+notexists"
         subject.errors.first.file.should == "test.js"
         subject.errors.first.line.should == 1
+      end
+
+      it "print catched exception when debug mode enabled" do
+        subject.debug = true
+        subject.errors.expects(:print_error)
+        subject.evaluate("10+notexists");
       end
     end
   end
