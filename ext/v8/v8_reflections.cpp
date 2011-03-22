@@ -23,6 +23,8 @@ Handle<Value> rb2handle(VALUE value)
     return True();
   case T_FALSE:
     return False();
+  case T_SYMBOL:
+    return rb2handle(rb_sym_to_s(value));
   case T_STRING:
     return String::New(StringValuePtr(value));
   case T_FLOAT:
@@ -67,7 +69,6 @@ VALUE handle2rb(Handle<Value> value)
   //if (value->IsExternal()) {}
   //if (value->IsFunction()) {}
   //if (value->IsArray()) {}
-  //if (value->IsDate()) {}
   //if (value->IsObject()) {}
   
   return Qnil;

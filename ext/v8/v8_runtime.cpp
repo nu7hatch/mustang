@@ -73,7 +73,7 @@ static VALUE runtimeEvaluate(VALUE self, VALUE source, VALUE filename)
 static VALUE runtimeGetVar(VALUE self, VALUE name)
 {
   runtimeDefineScopes();
-  Handle<Value> value = runtimeGetGlobal(self)->Get(rbstr2v8(name));
+  Handle<Value> value = runtimeGetGlobal(self)->Get(rb2handle(name));
   return handle2rb(value);
 }
 
@@ -81,7 +81,7 @@ static VALUE runtimeGetVar(VALUE self, VALUE name)
 static VALUE runtimeSetVar(VALUE self, VALUE name, VALUE value)
 {
   runtimeDefineScopes();
-  runtimeGetGlobal(self)->Set(rbstr2v8(name), rb2handle(value));
+  runtimeGetGlobal(self)->Set(rb2handle(name), rb2handle(value));
   return value;
 }
 
