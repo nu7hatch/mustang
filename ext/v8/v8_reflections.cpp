@@ -7,7 +7,7 @@ using namespace std;
   VALUE handle2rb(from value)			\
   {						\
     return handle2rb((Handle<Value>) value);	\
-  }						\
+  }
 
 // TODO: add missing coversions for both sides...
 
@@ -72,6 +72,8 @@ VALUE handle2rb(Handle<Value> value)
   
   return Qnil;
 }
+
+/* Overloaded convertes for various v8 data types */
 
 VALUE handle2rb(bool value)
 {
