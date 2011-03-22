@@ -66,7 +66,40 @@ describe Mustang::Runtime do
       it "properly reflects objects"
       it "properly reflects functions"
       it "tires to reflect externals"
-
     end
-  end  
+
+    describe "#load" do
+      it "loads and evaluates given list of files" do
+        files = []
+        files << File.expand_path("../fixtures/test1.js", __FILE__)
+        files << File.expand_path("../fixtures/test2.js", __FILE__)
+        
+        subject.load(*files)
+        subject.evaluate("foo").should == "test1foo"
+        subject.evaluate("bar").should == "test2bar"
+      end
+
+      it "raises Mustang::ScriptNotFoundError when given file doesn't exist" do
+        expect { subject.load("filenotexists") }.to raise_error(Mustang::ScriptNotFoundError)
+      end
+    end
+  end
+
+  describe "global object" do
+    context "V8 object" do
+      it "is defined" do
+        subject.evaluate("V8").should == "[object Object]"
+      end
+      
+      it "#version method returns engine version" do
+        subject.evaluate("V8.version").should =~ /\d.\d.\d/
+      end
+    end
+
+    context "Mustang object" do
+      it "is defined" do
+        subject.evaluate("Mustang").should == "[object Object]"
+      end
+    end
+  end
 end
