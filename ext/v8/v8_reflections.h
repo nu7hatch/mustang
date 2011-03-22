@@ -7,11 +7,17 @@
 
 using namespace v8;
 
+#define v82cstr(str)				\
+  *str ? *str : ""
+
 #define cstr2v8(cstr)				\
   String::New(cstr)
 
 #define rbstr2v8(rbstr)				\
   cstr2v8(StringValuePtr(rbstr))
+
+#define v82rbstr(str)				\
+  rb_str_new2(v82cstr(str))
 
 /* API */
 Handle<Value> rb2handle(VALUE value);

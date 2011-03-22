@@ -1,10 +1,14 @@
-require 'mustang/engine'
+require 'mustang/v8'
+require 'mustang/errors'
 
 module Mustang
   # Raised when given script file doesn't exist.
   class ScriptNotFoundError < Errno::ENOENT; end
 
   class Runtime < V8::Runtime
+    attr_accessor :debug
+    alias_method :debug?, :debug
+
     alias_method :set, :"[]="
     alias_method :get, :"[]"
     
@@ -15,6 +19,9 @@ module Mustang
     #   rt[:foo] # => "bar"
     #
     def initialize(locals={})
+      @debug = false
+      @errors = Errors.new(self)
+
       super()
       set_all(locals)
       set("Ruby", Object)
