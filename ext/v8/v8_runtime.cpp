@@ -27,7 +27,7 @@ static VALUE runtimeAllocate(VALUE klass)
 
   struct runtime *r = new runtime();
   r->context = Context::New(NULL, global_template, global_object);
-
+  
   return Data_Wrap_Struct(klass, runtimeMark, runtimeFree, r);
 }
 
