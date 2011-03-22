@@ -6,7 +6,7 @@
 #include <string>
 
 #define cstr2v8(cstr) String::New(cstr)
-#define rbstr2v8(rbstr) cstr2v8(STR2CSTR(rbstr))
+#define rbstr2v8(rbstr) cstr2v8(StringValuePtr(rbstr))
 
 using namespace v8;
 
