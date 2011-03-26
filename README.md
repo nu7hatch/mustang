@@ -1,18 +1,12 @@
 # Mustang - V8 engine in Ruby's body
 
 Mustang is ruby proxy library for awesome Google V8 JavaScript engine. 
-It embeds the V8 engine as a C++ extension (using Rice).
 
 ## Installation
 
-Using rubygems:
-
-    $ gem install mustang
-
-Manualy:
-
     $ git clone git://github.com/nu7hatch/mustang.git
     $ cd mustang
+    $ rake compile
     $ rake install
 
 ## Usage
@@ -21,10 +15,10 @@ For now it's only proof of concept. It implements very simple evaluation of java
 
     require 'mustang'
     
-    rt = Mustang::Runtime.new
-    rt.evaluate("'Hello' + ' World!';") # => 'Hello World!'
-    rt.evaluate("var a=1;")
-    rt.evaluate("a+5;") # => 6
+    cxt = Mustang::Context.new
+    cxt.eval("'Hello' + ' World!';") # => 'Hello World!'
+    cxt.eval("var a=1;")
+    cxt.eval("a+5;") # => 6
 
 ## Note on Patches/Pull Requests
  
