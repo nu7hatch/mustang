@@ -1,3 +1,6 @@
 require 'mustang/v8'
-require 'mustang/runtime'
-
+require 'mustang/v8/object'
+require 'mustang/v8/string'
+require 'mustang/v8/integer'
+require 'mustang/v8/array'
+require 'mustang/context'

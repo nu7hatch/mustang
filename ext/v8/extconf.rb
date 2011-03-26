@@ -37,9 +37,9 @@ have_library 'objc' if darwin?
 
 $LOCAL_LIBS << Dir[File.join(V8_DIR, "**/**/libv8.a")].first
 
-$CPPFLAGS += " -Wall" unless $CPPFLAGS.split.include? "-Wall"
-$CPPFLAGS += " -g" unless $CPPFLAGS.split.include? "-g"
-$CPPFLAGS += " -rdynamic" unless $CPPFLAGS.split.include? "-rdynamic"
+%w[-Wall -g -rdynamic -fPIC].each { |flag|
+  $CPPFLAGS += " #{flag}" unless $CPPFLAGS.include?(flag)
+}
 
 CONFIG['LDSHARED'] = '$(CXX) -shared' unless darwin?
 

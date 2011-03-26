@@ -24,7 +24,7 @@ module Mustang
 
       super()
       set_all(locals)
-      set("Ruby", Object)
+      #set("Ruby", Object)
     end
 
     # Evaluates given javascript source. Before evaluation it's able to
