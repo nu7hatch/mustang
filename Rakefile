@@ -21,7 +21,9 @@ end
 
 begin
   require 'rspec/core/rake_task'
-  RSpec::Core::RakeTask.new(:spec)
+  RSpec::Core::RakeTask.new(:spec) do |t|
+    t.rspec_opts = ENV['RSPEC_OPTS']
+  end
 rescue LoadError
   task :spec do
     abort 'Run `gem install rspec` to install RSpec'
@@ -31,7 +33,7 @@ end
 task :test => [:clean, :compile, :spec]
 task :default => :test
 
-begin 
+begin
   require 'metric_fu'
 rescue LoadError
   STDERR.puts "Run `gem install metric_fu` to install Metric-Fu"
@@ -44,3 +46,10 @@ Rake::RDocTask.new do |rdoc|
   rdoc.rdoc_files.include('README*')
   rdoc.rdoc_files.include('lib/**/*.rb')
 end
+
+task :init_mustang do
+  require 'mustang'
+  $c = Mustang::Context.new
+end 
+
+Rake::Task[:console].prerequisites << :init_mustang
