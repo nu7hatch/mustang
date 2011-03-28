@@ -3,6 +3,7 @@
 #include "v8_object.h"
 #include "v8_string.h"
 #include "v8_integer.h"
+#include "v8_number.h"
 #include "v8_array.h"
 #include "v8_function.h"
 #include "v8_context.h"
@@ -27,6 +28,8 @@ Handle<Value> to_v8(VALUE value)
     return to_v8(rb_sym_to_s(value));
   case T_FIXNUM:
     return v8_integer_cast(value);
+  case T_FLOAT:
+    return v8_number_cast(value);
   case T_STRING:
     return v8_string_cast(value);
   case T_ARRAY:
@@ -60,6 +63,8 @@ VALUE to_ruby(Handle<Value> value)
     return value->BooleanValue() ? Qtrue : Qfalse;
   } else if (value->IsUint32() || value->IsInt32()) {
     return v8_integer_cast(value);
+  } else if (value->IsNumber()) {
+    return v8_number_cast(value);
   } else if (value->IsString()) {
     return v8_string_cast(value);
   } else if (value->IsFunction()) {
@@ -78,6 +83,8 @@ VALUE to_ruby(Handle<Value> value)
 OVERLOADED_V8_TO_RUBY_CAST(Object);
 OVERLOADED_V8_TO_RUBY_CAST(String);
 OVERLOADED_V8_TO_RUBY_CAST(Integer);
+OVERLOADED_V8_TO_RUBY_CAST(Int32);
+OVERLOADED_V8_TO_RUBY_CAST(Uint32);
 OVERLOADED_V8_TO_RUBY_CAST(Function);
 OVERLOADED_V8_TO_RUBY_CAST(Array);
 OVERLOADED_V8_TO_RUBY_CAST(External);

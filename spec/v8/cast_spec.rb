@@ -4,33 +4,37 @@ describe "Typecasting" do
   setup_context
 
   context "from js to ruby" do
-    it "converts js null to nil" do
+    it "converts null to nil" do
       cxt.eval("null", "<eval>").should_not be
     end
 
-    it "converts js undefined value to nil" do
+    it "converts undefined value to nil" do
       cxt.eval("undefined", "<eval>").should_not be
     end
 
-    it "converts js boolean properly" do
+    it "converts boolean values properly" do
       cxt.eval("true", "<eval>").should be_true
       cxt.eval("false", "<eval>").should be_false
     end
 
-    it "converts js string properly" do
+    it "converts strings properly" do
       cxt.eval("'foo'", "<eval>").should == "foo"
     end
 
-    it "converts js integers properly" do
+    it "converts integers properly" do
       cxt.eval("1", "<eval>").should == 1
       cxt.eval("-1", "<eval>").should == -1
     end
 
-    it "converts js arrays properly" do
+    it "converts float numbers properly" do
+      cxt.eval("1.4", "<eval>").should == 1.4
+    end
+
+    it "converts arrays properly" do
       cxt.eval("[1,2,3]", "<eval>").should == [1,2,3]
     end
 
-    it "converts js objects properly" do
+    it "converts objects properly" do
       obj = cxt.eval("var o = {foo: 1, bar: 2, func: function() { return 1 }}; o", "<eval>")
       obj[:foo].should == 1
       obj[:bar].should == 2
@@ -44,14 +48,14 @@ describe "Typecasting" do
       cxt.eval("foo == null", "<eval>").should be
     end
 
-    it "converts boolean properly" do
+    it "converts boolean values properly" do
       cxt[:foo] = true
       cxt[:bar] = false
       cxt.eval("foo == true", "<eval>").should be
       cxt.eval("bar == false", "<eval>").should be
     end
 
-    it "converts string properly" do
+    it "converts strings properly" do
       cxt[:foo] = "bar"
       cxt.eval("foo == 'bar'", "<eval>").should be
     end
@@ -61,6 +65,11 @@ describe "Typecasting" do
       cxt[:bar] = -1
       cxt.eval("foo == 1", "<eval>").should be
       cxt.eval("bar == -1", "<eval>").should be
+    end
+
+    it "converts numbers properly" do
+      cxt[:foo] = 1.5
+      cxt.eval("foo == 1.5", "<eval>").should be
     end
 
     it "converts arrays properly" do
