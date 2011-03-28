@@ -20,6 +20,7 @@ Handle<Value> v8_function_cast(VALUE value)
 {
   //HandleScope scope;
   //return scope.Close(Function::New());
+  return Null();
 }
 
 /* Local heleprs */

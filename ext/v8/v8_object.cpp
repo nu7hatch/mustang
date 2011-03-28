@@ -1,6 +1,7 @@
 #include "v8_ref.h"
 #include "v8_cast.h"
 #include "v8_object.h"
+#include "v8_string.h"
 
 using namespace v8;
 
@@ -84,7 +85,14 @@ static VALUE rb_v8_object_set(VALUE self, VALUE key, VALUE value)
 static VALUE rb_v8_object_keys(VALUE self)
 {
   HandleScope scope;
-  return to_ruby(unwrap(self)->GetPropertyNames());
+  Handle<Array> v8keys = unwrap(self)->GetPropertyNames();
+  VALUE keys = rb_ary_new();
+  
+  for (unsigned int i = 0; i < v8keys->Length(); i++) {
+    rb_ary_push(keys, to_ruby(v8keys->Get(i)));
+  }
+
+  return keys;
 }
 
 

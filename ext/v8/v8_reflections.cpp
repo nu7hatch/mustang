@@ -172,7 +172,7 @@ Handle<Value> rb2handle(VALUE value)
   case T_FALSE:
     return False();
   case T_SYMBOL:
-    return rb2handle(rb_sym_to_s(value));
+    //return rb2handle(rb_sym_to_s(value));
   case T_STRING:
     return stringRef::to_v8(value);
   case T_FLOAT:

@@ -49,8 +49,7 @@ static VALUE rb_v8_string_new(VALUE klass, VALUE data)
 static VALUE rb_v8_string_to_utf8(VALUE self)
 {
   HandleScope scope;
-  VALUE str = rb_str_new2(*String::Utf8Value(unwrap(self)));
-  return rb_funcall(str, rb_intern("force_encoding"), 1, rb_str_new2("UTF-8"));
+  return rb_str_new2(*String::Utf8Value(unwrap(self)));
 }
 
 /*
