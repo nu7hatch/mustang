@@ -1,5 +1,27 @@
 require File.dirname(__FILE__) + '/../spec_helper'
 
+describe Object do
+  setup_context
+
+  it "includes V8::Cast module" do
+    subject.respond_to?(:to_v8)
+  end
+end
+
+describe V8::Cast do
+  setup_context
+
+  describe "#to_v8" do
+    it "converts current object to v8 compilant" do
+      [1,2,3].to_v8.should be_kind_of(V8::Array)
+      1.to_v8.should be_kind_of(V8::Integer)
+      "foo".to_v8.should be_kind_of(V8::String)
+      (1.5).to_v8.should be_kind_of(V8::Number)
+      {:foo => 1}.to_v8.should be_kind_of(V8::Object)
+    end
+  end
+end
+
 describe "Typecasting" do
   setup_context
 

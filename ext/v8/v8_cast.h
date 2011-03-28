@@ -5,6 +5,9 @@
 
 using namespace v8;
 
+/* V8::Cast module */
+RUBY_EXTERN VALUE rb_mV8Cast;
+
 #define OVERLOADED_V8_TO_RUBY_CAST(from)	   \
   VALUE to_ruby(Handle<from> value)		   \
   {						   \
@@ -26,5 +29,7 @@ VALUE to_ruby(int64_t value);
 VALUE to_ruby(uint32_t value);
 VALUE to_ruby(int32_t value);
 VALUE to_ruby(char *value);
+
+void Init_V8_Cast();
 
 #endif//__V8_CAST_H

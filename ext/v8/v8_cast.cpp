@@ -11,10 +11,6 @@
 
 using namespace v8;
 
-#ifndef rb_sym_to_s
-#define rb_sym_to_s(sym) rb_funcall2(sym, rb_intern("to_s"), 0, NULL)
-#endif
-
 Handle<Value> to_v8(VALUE value)
 {
   switch (TYPE(value)) {
@@ -95,3 +91,32 @@ VALUE to_ruby(char *value)    { return rb_str_new2(value); }
 VALUE to_ruby(int64_t value)  { return LONG2NUM(value); }
 VALUE to_ruby(uint32_t value) { return UINT2NUM(value); }
 VALUE to_ruby(int32_t value)  { return INT2FIX(value); }
+
+/* V8::Cast module methods */
+
+VALUE rb_mV8Cast;
+
+/*
+ * call-seq:
+ *   obj.to_v8  => v8_obj
+ *
+ * Converts standard ruby object to ruby v8 representation.
+ *
+ *   [1,2,3].to_v8 # => #<V8::Array>
+ *   1230.to_v8    # => #<V8::Integer>
+ *   "foo".to_v8   # => #<V8::String>
+ *
+ */
+static VALUE rb_v8_cast_to_v8(VALUE self)
+{
+  HandleScope scope;
+  return to_ruby(to_v8(self));
+}
+
+
+/* V8::Cast module initializer */
+void Init_V8_Cast()
+{
+  rb_mV8Cast = rb_define_module_under(rb_mV8, "Cast");
+  rb_define_method(rb_mV8Cast, "to_v8", RUBY_METHOD_FUNC(rb_v8_cast_to_v8), 0);
+}

@@ -1,4 +1,5 @@
 #include "v8_main.h"
+#include "v8_cast.h"
 #include "v8_context.h"
 #include "v8_object.h"
 #include "v8_string.h"
@@ -8,8 +9,13 @@
 #include "v8_function.h"
 #include "v8_external.h"
 
+#ifndef rb_sym_to_s
+#define rb_sym_to_s(sym) rb_funcall2(sym, rb_intern("to_s"), 0, NULL)
+#endif
+
 extern "C" void Init_v8() {
   Init_V8();
+  Init_V8_Cast();
   Init_V8_Context();
   Init_V8_Object();
   Init_V8_String();
