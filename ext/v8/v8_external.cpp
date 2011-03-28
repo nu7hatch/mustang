@@ -29,7 +29,8 @@ Handle<Value> v8_external_cast(VALUE value)
 VALUE v8_external_cast(Handle<Value> value)
 {
   HandleScope scope;
-  return v8_ref_new(rb_cV8External, value);
+  Local<External> ext = External::Cast(*value);
+  return v8_ref_new(rb_cV8External, ext);
 }
 
 /* Local helpers */

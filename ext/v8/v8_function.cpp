@@ -12,7 +12,7 @@ VALUE rb_cV8Function;
 VALUE v8_function_cast(Handle<Value> value)
 {
   HandleScope scope;
-  Local<Function> func(Function::Cast(*value));
+  Local<Function> func = Function::Cast(*value);
   return v8_ref_new(rb_cV8Function, func);
 }
 

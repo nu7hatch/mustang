@@ -12,7 +12,7 @@ VALUE rb_cV8String;
 VALUE v8_string_cast(Handle<Value> value)
 {
   HandleScope scope;
-  Local<String> str(String::Cast(*value));
+  Local<String> str = String::Cast(*value);
   return v8_ref_new(rb_cV8String, str);
 }
 

@@ -2,6 +2,7 @@ require 'v8'
 require 'v8/object'
 require 'v8/string'
 require 'v8/integer'
+require 'v8/number'
 require 'v8/array'
 require 'mustang/context'
 

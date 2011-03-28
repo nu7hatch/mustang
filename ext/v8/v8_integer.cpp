@@ -12,8 +12,8 @@ VALUE rb_cV8Integer;
 VALUE v8_integer_cast(Handle<Value> value)
 {
   HandleScope scope;
-  Local<Integer> num(Integer::Cast(*value));
-  return v8_ref_new(rb_cV8Integer, num);
+  Local<Integer> val = Integer::Cast(*value);
+  return v8_ref_new(rb_cV8Integer, val);
 }
 
 Handle<Value> v8_integer_cast(VALUE value)
@@ -45,7 +45,7 @@ static VALUE rb_v8_integer_new(VALUE klass, VALUE data)
  * Returns fixnum value representation of referenced v8 integer.
  *
  */
-static VALUE rb_v8_string_to_i(VALUE self)
+static VALUE rb_v8_number_to_i(VALUE self)
 {
   HandleScope scope;
   Local<Integer> num = unwrap(self);
@@ -65,5 +65,5 @@ void Init_V8_Integer()
 {
   rb_cV8Integer = rb_define_class_under(rb_mV8, "Integer", rb_cV8Object);
   rb_define_singleton_method(rb_cV8Integer, "new", RUBY_METHOD_FUNC(rb_v8_integer_new), 1);
-  rb_define_method(rb_cV8Integer, "to_i", RUBY_METHOD_FUNC(rb_v8_string_to_i), 0);
+  rb_define_method(rb_cV8Integer, "to_i", RUBY_METHOD_FUNC(rb_v8_number_to_i), 0);
 }

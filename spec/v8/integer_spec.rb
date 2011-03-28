@@ -10,8 +10,8 @@ describe V8::Integer do
 
   describe ".new" do
     it "creates new v8 integer based on passed value" do
-      subject.new(10).to_i.should == 10
-      subject.new(-10).to_i.should == -10
+      subject.new(10).should == 10
+      subject.new(-10).should == -10
     end
   end
 

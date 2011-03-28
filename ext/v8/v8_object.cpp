@@ -12,7 +12,7 @@ VALUE rb_cV8Object;
 VALUE v8_object_cast(Handle<Value> value)
 {
   HandleScope scope;
-  Local<Object> obj(Object::Cast(*value));
+  Local<Object> obj = Object::Cast(*value);
   return v8_ref_new(rb_cV8Object, obj);
 }
 
@@ -35,7 +35,7 @@ Handle<Value> v8_object_cast(VALUE value)
 
 /* Local helpers */
 
-Handle<Object> unwrap(VALUE value)
+static Handle<Object> unwrap(VALUE value)
 {
   return v8_ref_get<Object>(value);
 }
