@@ -146,6 +146,16 @@ describe "V8 data types" do
         obj.properties.should == ['foo', 'bar']
       end
     end
+
+    describe "an instance" do
+      it "is enumerable" do
+        res = {}
+        obj = subject.new(:foo => 1, :bar => 2)
+        obj.each {|k,v| res[k.to_s] = v }
+        res['foo'].should == 1
+        res['bar'].should == 2
+      end
+    end
   end
 
   describe Mustang::V8::String do
@@ -208,6 +218,18 @@ describe "V8 data types" do
       end
     end
 
+    describe "#to_s" do
+      it "returns string representation of referenced value" do
+        subject.new(10).to_s.should == "10"
+      end
+    end
+
+    describe "#to_f" do
+      it "returns float representation of referenced value" do
+        subject.new(10).to_f.should == 10.0
+      end
+    end
+
     describe "an instance" do
       it "is comparable" do
         int = subject.new(10)
@@ -222,7 +244,73 @@ describe "V8 data types" do
   end
 
   describe Mustang::V8::Array do 
+    subject { Mustang::V8::Array }
 
+    describe ".new" do
+      context "when no params given" do
+        it "creates empty array" do
+          ary = subject.new
+          ary.should be
+          ary.should == []
+        end
+      end
+      
+      context "when array given" do
+        it "creates v8 array based on it" do
+          ary = subject.new(1,2,3)
+          ary.should == [1,2,3]
+        end
+      end
+    end
+
+    describe "#length" do
+      it "returns size of array" do
+        subject.new(1,2).length.should == 2
+      end
+      
+      it "is aliased with #size" do
+        subject.new(1,2).size.should == 2
+      end
+    end
+
+    describe "#to_a" do
+      it "returns ruby array representation of referenced v8 array" do
+        subject.new(1,2).to_a.should == [1,2]
+      end
+    end
+
+    describe "#push" do
+      it "appends given object to array" do
+        ary = subject.new
+        ary.push("foo")
+        ary[0].should == "foo"
+      end
+
+      it "is aliased with #<<" do
+        ary = subject.new
+        ary.push("foo")
+        ary[0].should == "foo"
+      end
+    end
+
+    describe "an instance" do
+      it "is comparable" do
+        ary = subject.new(1,2,3)
+        ary.should == [1,2,3]
+        ary.should_not == [2,3,4]
+        ary.should > [1,2]
+        ary.should < [1,2,3,4]
+        ary.should <= [1,2,3,4]
+        ary.should >= [1,2,3]
+      end
+
+      it "is enumerable" do
+        res = []
+        ary = subject.new(1,2,3)
+        ary.each {|x| res << x }
+        res.should == [1,2,3]
+      end
+    end
   end
 
   describe Mustang::V8::Function do
@@ -269,6 +357,10 @@ describe "V8 data types" do
     it "converts js integers properly" do
       cxt.eval("1", "<eval>").should == 1
       cxt.eval("-1", "<eval>").should == -1
+    end
+
+    it "converts js arrays properly" do
+      cxt.eval("[1,2,3]", "<eval>").should == [1,2,3]
     end
   end
 end
