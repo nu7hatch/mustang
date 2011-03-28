@@ -7,6 +7,15 @@ using namespace v8;
 
 VALUE rb_cMustangV8Object;
 
+/* Typecasting helpers */
+
+VALUE v8_object_cast(Handle<Value> value)
+{
+  HandleScope scope;
+  Local<Object> obj(Object::Cast(*value));
+  return v8_ref_new(rb_cMustangV8Object, obj);
+}
+
 /* Local helpers */
 
 Handle<Object> unwrap(VALUE value)

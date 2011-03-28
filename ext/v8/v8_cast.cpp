@@ -51,21 +51,18 @@ VALUE to_ruby(Handle<Value> value)
 {
   if (value.IsEmpty() || value->IsUndefined() || value->IsNull()) {
     return Qnil;
-  }
-  if (value->IsBoolean()) {
+  } else if (value->IsBoolean()) {
     return value->BooleanValue() ? Qtrue : Qfalse;
-  }
-  if (value->IsUint32() || value->IsInt32()) {
+  } else if (value->IsUint32() || value->IsInt32()) {
     return v8_integer_cast(value);
-  }
-  if (value->IsString()) {
+  } else if (value->IsString()) {
     return v8_string_cast(value);
-  }
-  if (value->IsFunction()) {
+  } else if (value->IsFunction()) {
     return v8_function_cast(value);
-  }
-  if (value->IsArray()) {
+  } else if (value->IsArray()) {
     return v8_array_cast(value);
+  } else if (value->IsObject()) {
+    return v8_object_cast(value);
   }
 
   return Qnil;

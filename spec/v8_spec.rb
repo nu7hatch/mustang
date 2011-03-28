@@ -62,7 +62,9 @@ describe Mustang::V8::Context do
   end
 
   describe "#global" do
-    it "returns the global object for current context"
+    it "returns the global object for current context" do
+      subject.global.should be_kind_of(Mustang::V8::Object)
+    end
   end
 
   describe "#enter" do
@@ -361,6 +363,13 @@ describe "V8 data types" do
 
     it "converts js arrays properly" do
       cxt.eval("[1,2,3]", "<eval>").should == [1,2,3]
+    end
+
+    it "converts js objects properly" do
+      obj = cxt.eval("var o = {foo: 1, bar: 2, func: function() { return 1 }}; o", "<eval>")
+      obj[:foo].should == 1
+      obj[:bar].should == 2
+      obj[:func].should be_kind_of(Mustang::V8::Function)
     end
   end
 end
