@@ -9,3 +9,4 @@ Makefile
 build
 pkg
 tmp
+eproject.cfg
