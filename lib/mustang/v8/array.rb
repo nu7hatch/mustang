@@ -11,6 +11,6 @@ module Mustang
       def each(*args, &block)
         to_a.each(*args, &block)
       end
-    end # Integer
+    end # Array
   end # V8
 end # Mustang

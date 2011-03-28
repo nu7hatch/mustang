@@ -23,7 +23,7 @@ module Mustang
       end
 
       def to_hash
-        Hash[keys.map {|key| [key, get(key)] }.flatten(0)]
+        Hash[*keys.map {|key| [key, get(key)] }.flatten(1)]
       end
     end # Integer
   end # V8
