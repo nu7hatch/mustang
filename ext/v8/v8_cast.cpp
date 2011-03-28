@@ -31,9 +31,7 @@ Handle<Value> to_v8(VALUE value)
   case T_ARRAY:
     return v8_array_cast(value);
   default:
-    if (rb_obj_is_kind_of(value, rb_cMustangV8Object)) {
-      return v8_ref_get<Object>(value);
-    } else if (rb_obj_is_kind_of(value, rb_cMustangV8String)) {
+    if (rb_obj_is_kind_of(value, rb_cMustangV8String)) {
       return v8_ref_get<String>(value);
     } else if (rb_obj_is_kind_of(value, rb_cMustangV8Integer)) {
       return v8_ref_get<Integer>(value);
@@ -41,6 +39,8 @@ Handle<Value> to_v8(VALUE value)
       return v8_ref_get<Array>(value);
     } else if (rb_obj_is_kind_of(value, rb_cMustangV8Function)) {
       return v8_ref_get<Function>(value);
+    } else if (rb_obj_is_kind_of(value, rb_cMustangV8Object)) {
+      return v8_ref_get<Object>(value);
     } else {
       return Undefined();
     }
@@ -79,8 +79,7 @@ OVERLOADED_V8_TO_RUBY_CAST(Array);
 
 VALUE to_ruby(bool value)     { return value ? Qtrue : Qfalse; }
 VALUE to_ruby(double value)   { return rb_float_new(value); }
-
+VALUE to_ruby(char *value)    { return rb_str_new2(value); }
 VALUE to_ruby(int64_t value)  { return LONG2NUM(value); }
 VALUE to_ruby(uint32_t value) { return UINT2NUM(value); }
 VALUE to_ruby(int32_t value)  { return INT2FIX(value); }
-VALUE to_ruby(char *value)    { return rb_str_new2(value); }
