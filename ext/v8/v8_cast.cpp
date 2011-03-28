@@ -31,15 +31,15 @@ Handle<Value> to_v8(VALUE value)
   case T_ARRAY:
     return v8_array_cast(value);
   default:
-    if (rb_obj_is_kind_of(value, rb_cMustangV8String)) {
+    if (rb_obj_is_kind_of(value, rb_cV8String)) {
       return v8_ref_get<String>(value);
-    } else if (rb_obj_is_kind_of(value, rb_cMustangV8Integer)) {
+    } else if (rb_obj_is_kind_of(value, rb_cV8Integer)) {
       return v8_ref_get<Integer>(value);
-    } else if (rb_obj_is_kind_of(value, rb_cMustangV8Array)) {
+    } else if (rb_obj_is_kind_of(value, rb_cV8Array)) {
       return v8_ref_get<Array>(value);
-    } else if (rb_obj_is_kind_of(value, rb_cMustangV8Function)) {
+    } else if (rb_obj_is_kind_of(value, rb_cV8Function)) {
       return v8_ref_get<Function>(value);
-    } else if (rb_obj_is_kind_of(value, rb_cMustangV8Object)) {
+    } else if (rb_obj_is_kind_of(value, rb_cV8Object)) {
       return v8_ref_get<Object>(value);
     } else {
       return Undefined();

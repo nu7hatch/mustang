@@ -4,7 +4,7 @@
 
 using namespace v8;
 
-VALUE rb_cMustangV8Context;
+VALUE rb_cV8Context;
 
 /* Local helpers */
 
@@ -24,7 +24,7 @@ Handle<Object> v8_context_get_prototype(VALUE self)
   return Handle<Object>::Cast(unwrap(self)->Global()->GetPrototype());
 }
 
-/* Mustang::V8::Context methods */
+/* V8::Context methods */
       
 static VALUE rb_v8_context_new(VALUE self)
 {
@@ -44,7 +44,7 @@ static VALUE rb_v8_context_new(VALUE self)
  *
  * Evaluates given JavaScript code within current context.
  *
- *   cxt = Mustang::V8::Context.new
+ *   cxt = V8::Context.new
  *   cxt.evaluate("1+1", "script.js")    # => 2
  *   cxt.evaluate("var a=1", "<eval>")   # => 1
  *   cxt.evaluate("var b=a+1", "<eval>") # => 2
@@ -90,7 +90,7 @@ static VALUE rb_v8_context_evaluate(VALUE self, VALUE source, VALUE filename)
  *
  * Get given property from the global object proto.
  *
- *   cxt = Mustang::V8::Context.new
+ *   cxt = V8::Context.new
  *   cxt.eval("var foo = 'bar'")
  *   cxt["foo"] # => 'bar'
  *
@@ -108,7 +108,7 @@ static VALUE rb_v8_context_get(VALUE self, VALUE key)
  *
  * Set given property within the global object proto.
  *
- *   cxt = Mustang::V8::Context.new
+ *   cxt = V8::Context.new
  *   cxt["foo"] = "bar"
  *   cxt.eval("foo") # => 'bar'
  *
@@ -197,19 +197,19 @@ static VALUE rb_v8_context_entered_p(VALUE self)
 }
 
 
-/* Mustang::V8::Context class initializer. */
+/* V8::Context class initializer. */
 void Init_V8_Context()
 {
-  rb_cMustangV8Context = rb_define_class_under(rb_mMustangV8, "Context", rb_cObject);
-  rb_define_singleton_method(rb_cMustangV8Context, "new", RUBY_METHOD_FUNC(rb_v8_context_new), 0);
-  rb_define_method(rb_cMustangV8Context, "evaluate", RUBY_METHOD_FUNC(rb_v8_context_evaluate), 2);
-  rb_define_method(rb_cMustangV8Context, "eval", RUBY_METHOD_FUNC(rb_v8_context_evaluate), 2);
-  rb_define_method(rb_cMustangV8Context, "[]", RUBY_METHOD_FUNC(rb_v8_context_get), 1);
-  rb_define_method(rb_cMustangV8Context, "get", RUBY_METHOD_FUNC(rb_v8_context_get), 1);
-  rb_define_method(rb_cMustangV8Context, "[]=", RUBY_METHOD_FUNC(rb_v8_context_set), 2);
-  rb_define_method(rb_cMustangV8Context, "set", RUBY_METHOD_FUNC(rb_v8_context_set), 2);
-  rb_define_method(rb_cMustangV8Context, "global", RUBY_METHOD_FUNC(rb_v8_context_global), 0);
-  rb_define_method(rb_cMustangV8Context, "enter", RUBY_METHOD_FUNC(rb_v8_context_enter), 0);
-  rb_define_method(rb_cMustangV8Context, "exit", RUBY_METHOD_FUNC(rb_v8_context_exit), 0);
-  rb_define_method(rb_cMustangV8Context, "entered?", RUBY_METHOD_FUNC(rb_v8_context_entered_p), 0);
+  rb_cV8Context = rb_define_class_under(rb_mV8, "Context", rb_cObject);
+  rb_define_singleton_method(rb_cV8Context, "new", RUBY_METHOD_FUNC(rb_v8_context_new), 0);
+  rb_define_method(rb_cV8Context, "evaluate", RUBY_METHOD_FUNC(rb_v8_context_evaluate), 2);
+  rb_define_method(rb_cV8Context, "eval", RUBY_METHOD_FUNC(rb_v8_context_evaluate), 2);
+  rb_define_method(rb_cV8Context, "[]", RUBY_METHOD_FUNC(rb_v8_context_get), 1);
+  rb_define_method(rb_cV8Context, "get", RUBY_METHOD_FUNC(rb_v8_context_get), 1);
+  rb_define_method(rb_cV8Context, "[]=", RUBY_METHOD_FUNC(rb_v8_context_set), 2);
+  rb_define_method(rb_cV8Context, "set", RUBY_METHOD_FUNC(rb_v8_context_set), 2);
+  rb_define_method(rb_cV8Context, "global", RUBY_METHOD_FUNC(rb_v8_context_global), 0);
+  rb_define_method(rb_cV8Context, "enter", RUBY_METHOD_FUNC(rb_v8_context_enter), 0);
+  rb_define_method(rb_cV8Context, "exit", RUBY_METHOD_FUNC(rb_v8_context_exit), 0);
+  rb_define_method(rb_cV8Context, "entered?", RUBY_METHOD_FUNC(rb_v8_context_entered_p), 0);
 }

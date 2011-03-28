@@ -10,8 +10,8 @@ void gc_v8_object_free(v8_ref *r)
 /*
  * Creates new reference to V8 object for ruby object.
  *
- *   v8_ref_new(rb_cMustangV8Integer, Integer::New());
- *   v8_ref_new(rb_cMustangV8String, String::Cast(*value));
+ *   v8_ref_new(rb_cV8Integer, Integer::New());
+ *   v8_ref_new(rb_cV8String, String::Cast(*value));
  *
  */
 VALUE v8_ref_new(VALUE obj, Handle<void> handle)

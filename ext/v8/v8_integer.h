@@ -5,8 +5,8 @@
 
 using namespace v8;
 
-/* Mustang::V8::Integer class */
-RUBY_EXTERN VALUE rb_cMustangV8Integer;
+/* V8::Integer class */
+RUBY_EXTERN VALUE rb_cV8Integer;
 
 /* API */
 VALUE v8_integer_cast(Handle<Value> value);

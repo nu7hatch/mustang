@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 require File.dirname(__FILE__) + '/spec_helper'
 
-describe Mustang::V8 do
+describe V8 do
   it "responds to .version" do
     subject.should respond_to(:version)
     subject.version.should =~ /^\d.\d.\d$/
@@ -18,7 +18,7 @@ describe Mustang::V8 do
   end
 end
 
-describe Mustang::V8::Context do
+describe V8::Context do
   describe "#evaluate" do
     it "evaluates given javascript source" do
       subject.evaluate("var a = 'foo'; a;", "<eval>").should == 'foo'
@@ -26,7 +26,7 @@ describe Mustang::V8::Context do
 
     it "returns result converted to ruby object" do
       result = subject.evaluate("'foo'", "<eval>")
-      result.should be_kind_of(Mustang::V8::String)
+      result.should be_kind_of(V8::String)
       result.to_s.should == 'foo'
     end
 
@@ -63,12 +63,12 @@ describe Mustang::V8::Context do
 
   describe "#global" do
     it "returns the global object for current context" do
-      subject.global.should be_kind_of(Mustang::V8::Object)
+      subject.global.should be_kind_of(V8::Object)
     end
   end
 
   describe "#enter" do
-    subject { Mustang::V8::Context.new }
+    subject { V8::Context.new }
 
     context "when block given" do
       it "enters to context evaluates passed block, and exits after execution" do
@@ -96,16 +96,16 @@ describe Mustang::V8::Context do
 end
 
 describe "V8 data types" do
-  let(:cxt) { Mustang::V8::Context.new }
+  let(:cxt) { V8::Context.new }
   before { cxt.enter }
   after { cxt.exit }
 
-  describe Mustang::V8::Object do
-    subject { Mustang::V8::Object }
+  describe V8::Object do
+    subject { V8::Object }
 
     describe ".new" do
       it "creates new v8 object" do
-        subject.new.should be_kind_of(Mustang::V8::Object)
+        subject.new.should be_kind_of(V8::Object)
       end
 
       context "when hash with properties passed" do
@@ -160,11 +160,11 @@ describe "V8 data types" do
     end
   end
 
-  describe Mustang::V8::String do
-    subject { Mustang::V8::String }
+  describe V8::String do
+    subject { V8::String }
 
-    it "inherits Mustang::V8::Object" do
-      subject.new("foo").should be_kind_of(Mustang::V8::Object)
+    it "inherits V8::Object" do
+      subject.new("foo").should be_kind_of(V8::Object)
     end
 
     describe ".new" do
@@ -200,11 +200,11 @@ describe "V8 data types" do
     end
   end
 
-  describe Mustang::V8::Integer do 
-    subject { Mustang::V8::Integer }
+  describe V8::Integer do 
+    subject { V8::Integer }
 
-    it "inherits Mustang::V8::Object" do
-      subject.new(10).should be_kind_of(Mustang::V8::Object)
+    it "inherits V8::Object" do
+      subject.new(10).should be_kind_of(V8::Object)
     end
 
     describe ".new" do
@@ -245,8 +245,8 @@ describe "V8 data types" do
     end
   end
 
-  describe Mustang::V8::Array do 
-    subject { Mustang::V8::Array }
+  describe V8::Array do 
+    subject { V8::Array }
 
     describe ".new" do
       context "when no params given" do
@@ -315,8 +315,8 @@ describe "V8 data types" do
     end
   end
 
-  describe Mustang::V8::Function do
-    subject { Mustang::V8::Function }
+  describe V8::Function do
+    subject { V8::Function }
 
     describe ".new" do
       it "creates new function pointed to proc/lambda"
@@ -331,7 +331,7 @@ describe "V8 data types" do
       context "when different `this` object is assigned" do
         it "executes function on it" do
           func = cxt.eval("var f = function(foo) { return this+foo }; f;", "<eval>")
-          func.this = Mustang::V8::Integer.new(10)
+          func.this = V8::Integer.new(10)
           func.call(10).should == 20;
         end
       end
@@ -369,7 +369,7 @@ describe "V8 data types" do
       obj = cxt.eval("var o = {foo: 1, bar: 2, func: function() { return 1 }}; o", "<eval>")
       obj[:foo].should == 1
       obj[:bar].should == 2
-      obj[:func].should be_kind_of(Mustang::V8::Function)
+      obj[:func].should be_kind_of(V8::Function)
     end
   end
 end

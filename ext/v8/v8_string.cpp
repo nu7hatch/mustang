@@ -5,7 +5,7 @@
 
 using namespace v8;
 
-VALUE rb_cMustangV8String;
+VALUE rb_cV8String;
 
 /* Typecasting helpers */
 
@@ -13,7 +13,7 @@ VALUE v8_string_cast(Handle<Value> value)
 {
   HandleScope scope;
   Local<String> str(String::Cast(*value));
-  return v8_ref_new(rb_cMustangV8String, str);
+  return v8_ref_new(rb_cV8String, str);
 }
 
 Handle<Value> v8_string_cast(VALUE value)
@@ -29,7 +29,7 @@ static Local<String> unwrap(VALUE self)
   return v8_ref_get<String>(self);
 }  
 
-/* Mustang::V8::String methods */
+/* V8::String methods */
 
 static VALUE rb_v8_string_new(VALUE klass, VALUE data)
 {
@@ -66,12 +66,12 @@ static VALUE rb_v8_string_to_ascii(VALUE self)
 }
 
 
-/* Mustang::V8::String initializer. */
+/* V8::String initializer. */
 void Init_V8_String()
 {
-  rb_cMustangV8String = rb_define_class_under(rb_mMustangV8, "String", rb_cMustangV8Object);
-  rb_define_singleton_method(rb_cMustangV8String, "new", RUBY_METHOD_FUNC(rb_v8_string_new), 1);
-  rb_define_method(rb_cMustangV8String, "to_ascii", RUBY_METHOD_FUNC(rb_v8_string_to_ascii), 0);
-  rb_define_method(rb_cMustangV8String, "to_utf8", RUBY_METHOD_FUNC(rb_v8_string_to_utf8), 0);
-  rb_define_method(rb_cMustangV8String, "to_s", RUBY_METHOD_FUNC(rb_v8_string_to_utf8), 0);
+  rb_cV8String = rb_define_class_under(rb_mV8, "String", rb_cV8Object);
+  rb_define_singleton_method(rb_cV8String, "new", RUBY_METHOD_FUNC(rb_v8_string_new), 1);
+  rb_define_method(rb_cV8String, "to_ascii", RUBY_METHOD_FUNC(rb_v8_string_to_ascii), 0);
+  rb_define_method(rb_cV8String, "to_utf8", RUBY_METHOD_FUNC(rb_v8_string_to_utf8), 0);
+  rb_define_method(rb_cV8String, "to_s", RUBY_METHOD_FUNC(rb_v8_string_to_utf8), 0);
 }

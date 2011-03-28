@@ -4,10 +4,8 @@
 #include <ruby.h>
 #include <v8.h>
 
-/* Mustang module */
-RUBY_EXTERN VALUE rb_mMustang;
-/* Mustang::V8 module */
-RUBY_EXTERN VALUE rb_mMustangV8;
+/* V8 module */
+RUBY_EXTERN VALUE rb_mV8;
 
 /* API */
 void Init_V8();

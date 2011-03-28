@@ -5,7 +5,7 @@
 
 using namespace v8;
 
-VALUE rb_cMustangV8Function;
+VALUE rb_cV8Function;
 
 /* Typecasting */
 
@@ -13,7 +13,7 @@ VALUE v8_function_cast(Handle<Value> value)
 {
   HandleScope scope;
   Local<Function> func(Function::Cast(*value));
-  return v8_ref_new(rb_cMustangV8Function, func);
+  return v8_ref_new(rb_cV8Function, func);
 }
 
 Handle<Value> v8_function_cast(VALUE value)
@@ -30,7 +30,7 @@ static Local<Function> unwrap(VALUE self)
   return v8_ref_get<Function>(self);
 }  
 
-/* Mustang::V8::Function methods */
+/* V8::Function methods */
 
 //static VALUE rb_v8_string_new(VALUE klass, VALUE data)
 //{
@@ -62,10 +62,10 @@ static VALUE rb_v8_function_call(int argc, VALUE *args, VALUE self)
 }
 
 
-/* Mustang::V8::Function initializer. */
+/* V8::Function initializer. */
 void Init_V8_Function()
 {
-  rb_cMustangV8Function = rb_define_class_under(rb_mMustangV8, "Function", rb_cMustangV8Object);
-  rb_define_attr(rb_cMustangV8Function, "this", 1, 1);
-  rb_define_method(rb_cMustangV8Function, "call", RUBY_METHOD_FUNC(rb_v8_function_call), -1);
+  rb_cV8Function = rb_define_class_under(rb_mV8, "Function", rb_cV8Object);
+  rb_define_attr(rb_cV8Function, "this", 1, 1);
+  rb_define_method(rb_cV8Function, "call", RUBY_METHOD_FUNC(rb_v8_function_call), -1);
 }

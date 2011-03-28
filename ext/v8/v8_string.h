@@ -5,8 +5,8 @@
 
 using namespace v8;
 
-/* Mustang::V8::String class */
-RUBY_EXTERN VALUE rb_cMustangV8String;
+/* V8::String class */
+RUBY_EXTERN VALUE rb_cV8String;
 
 /* API */
 VALUE v8_string_cast(Handle<Value> value);

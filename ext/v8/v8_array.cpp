@@ -5,7 +5,7 @@
 
 using namespace v8;
 
-VALUE rb_cMustangV8Array;
+VALUE rb_cV8Array;
 
 /* Typecasting helpers */
 
@@ -25,7 +25,7 @@ VALUE v8_array_cast(Handle<Value> value)
 {
   HandleScope scope;
   Local<Array> ary = Array::Cast(*value);
-  return v8_ref_new(rb_cMustangV8Array, ary);
+  return v8_ref_new(rb_cV8Array, ary);
 }
 
 /* Local helpers */
@@ -34,7 +34,7 @@ static Local<Array> unwrap(VALUE self)
   return v8_ref_get<Array>(self);
 }
 
-/* Mustang::V8::Array methods */
+/* V8::Array methods */
 
 static VALUE rb_v8_array_new(VALUE klass, VALUE data)
 {
@@ -132,18 +132,18 @@ VALUE rb_v8_array_length(VALUE self)
 }
 
 
-/* Mustang::V8::Array initializer. */
+/* V8::Array initializer. */
 void Init_V8_Array()
 {
-  rb_cMustangV8Array = rb_define_class_under(rb_mMustangV8, "Array", rb_cMustangV8Object);
-  rb_define_singleton_method(rb_cMustangV8Array, "new", RUBY_METHOD_FUNC(rb_v8_array_new), -2);
-  rb_define_method(rb_cMustangV8Array, "to_a", RUBY_METHOD_FUNC(rb_v8_array_to_a), 0);
-  rb_define_method(rb_cMustangV8Array, "[]", RUBY_METHOD_FUNC(rb_v8_array_get), 1);
-  rb_define_method(rb_cMustangV8Array, "get", RUBY_METHOD_FUNC(rb_v8_array_get), 1);
-  rb_define_method(rb_cMustangV8Array, "[]=", RUBY_METHOD_FUNC(rb_v8_array_set), 2);
-  rb_define_method(rb_cMustangV8Array, "set", RUBY_METHOD_FUNC(rb_v8_array_set), 2);
-  rb_define_method(rb_cMustangV8Array, "push", RUBY_METHOD_FUNC(rb_v8_array_push), 1);
-  rb_define_method(rb_cMustangV8Array, "<<", RUBY_METHOD_FUNC(rb_v8_array_push), 1);
-  rb_define_method(rb_cMustangV8Array, "length", RUBY_METHOD_FUNC(rb_v8_array_length), 0);
-  rb_define_method(rb_cMustangV8Array, "size", RUBY_METHOD_FUNC(rb_v8_array_length), 0);  
+  rb_cV8Array = rb_define_class_under(rb_mV8, "Array", rb_cV8Object);
+  rb_define_singleton_method(rb_cV8Array, "new", RUBY_METHOD_FUNC(rb_v8_array_new), -2);
+  rb_define_method(rb_cV8Array, "to_a", RUBY_METHOD_FUNC(rb_v8_array_to_a), 0);
+  rb_define_method(rb_cV8Array, "[]", RUBY_METHOD_FUNC(rb_v8_array_get), 1);
+  rb_define_method(rb_cV8Array, "get", RUBY_METHOD_FUNC(rb_v8_array_get), 1);
+  rb_define_method(rb_cV8Array, "[]=", RUBY_METHOD_FUNC(rb_v8_array_set), 2);
+  rb_define_method(rb_cV8Array, "set", RUBY_METHOD_FUNC(rb_v8_array_set), 2);
+  rb_define_method(rb_cV8Array, "push", RUBY_METHOD_FUNC(rb_v8_array_push), 1);
+  rb_define_method(rb_cV8Array, "<<", RUBY_METHOD_FUNC(rb_v8_array_push), 1);
+  rb_define_method(rb_cV8Array, "length", RUBY_METHOD_FUNC(rb_v8_array_length), 0);
+  rb_define_method(rb_cV8Array, "size", RUBY_METHOD_FUNC(rb_v8_array_length), 0);  
 }

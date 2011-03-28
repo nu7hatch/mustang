@@ -3,8 +3,8 @@
 
 #include "v8_main.h"
 
-/* Mustang::V8::Function class */
-RUBY_EXTERN VALUE rb_cMustangV8Function;
+/* V8::Function class */
+RUBY_EXTERN VALUE rb_cV8Function;
 
 /* API */
 VALUE v8_function_cast(v8::Handle<v8::Value> value);

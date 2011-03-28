@@ -1,8 +1,8 @@
-require 'mustang/v8'
-require 'mustang/v8/object'
-require 'mustang/v8/string'
-require 'mustang/v8/integer'
-require 'mustang/v8/array'
+require 'v8'
+require 'v8/object'
+require 'v8/string'
+require 'v8/integer'
+require 'v8/array'
 require 'mustang/context'
 
 module Mustang

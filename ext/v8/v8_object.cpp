@@ -5,7 +5,7 @@
 
 using namespace v8;
 
-VALUE rb_cMustangV8Object;
+VALUE rb_cV8Object;
 
 /* Typecasting helpers */
 
@@ -13,7 +13,7 @@ VALUE v8_object_cast(Handle<Value> value)
 {
   HandleScope scope;
   Local<Object> obj(Object::Cast(*value));
-  return v8_ref_new(rb_cMustangV8Object, obj);
+  return v8_ref_new(rb_cV8Object, obj);
 }
 
 /* Local helpers */
@@ -23,7 +23,7 @@ Handle<Object> unwrap(VALUE value)
   return v8_ref_get<Object>(value);
 }
 
-/* Mustang::V8::Object methods */
+/* V8::Object methods */
 
 static VALUE rb_v8_object_new(VALUE self)
 {
@@ -105,15 +105,15 @@ static VALUE rb_v8_object_keys(VALUE self)
 }
 
 
-/* Mustang::V8::Object class initializer. */
+/* V8::Object class initializer. */
 void Init_V8_Object()
 {
-  rb_cMustangV8Object = rb_define_class_under(rb_mMustangV8, "Object", rb_cObject);
-  rb_define_singleton_method(rb_cMustangV8Object, "new", RUBY_METHOD_FUNC(rb_v8_object_new), 0);
-  rb_define_method(rb_cMustangV8Object, "[]", RUBY_METHOD_FUNC(rb_v8_object_get), 1);
-  rb_define_method(rb_cMustangV8Object, "get", RUBY_METHOD_FUNC(rb_v8_object_get), 1);
-  rb_define_method(rb_cMustangV8Object, "[]=", RUBY_METHOD_FUNC(rb_v8_object_set), 2);
-  rb_define_method(rb_cMustangV8Object, "set", RUBY_METHOD_FUNC(rb_v8_object_set), 2);
-  rb_define_method(rb_cMustangV8Object, "keys", RUBY_METHOD_FUNC(rb_v8_object_keys), 0);
-  rb_define_method(rb_cMustangV8Object, "properties", RUBY_METHOD_FUNC(rb_v8_object_keys), 0);
+  rb_cV8Object = rb_define_class_under(rb_mV8, "Object", rb_cObject);
+  rb_define_singleton_method(rb_cV8Object, "new", RUBY_METHOD_FUNC(rb_v8_object_new), 0);
+  rb_define_method(rb_cV8Object, "[]", RUBY_METHOD_FUNC(rb_v8_object_get), 1);
+  rb_define_method(rb_cV8Object, "get", RUBY_METHOD_FUNC(rb_v8_object_get), 1);
+  rb_define_method(rb_cV8Object, "[]=", RUBY_METHOD_FUNC(rb_v8_object_set), 2);
+  rb_define_method(rb_cV8Object, "set", RUBY_METHOD_FUNC(rb_v8_object_set), 2);
+  rb_define_method(rb_cV8Object, "keys", RUBY_METHOD_FUNC(rb_v8_object_keys), 0);
+  rb_define_method(rb_cV8Object, "properties", RUBY_METHOD_FUNC(rb_v8_object_keys), 0);
 }

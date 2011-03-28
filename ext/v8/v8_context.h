@@ -3,8 +3,8 @@
 
 #include "v8_main.h"
 
-/* Mustang::V8::Context class */
-RUBY_EXTERN VALUE rb_cMustangV8Context;
+/* V8::Context class */
+RUBY_EXTERN VALUE rb_cV8Context;
 
 /* API */
 void Init_V8_Context();
