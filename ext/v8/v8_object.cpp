@@ -16,6 +16,23 @@ VALUE v8_object_cast(Handle<Value> value)
   return v8_ref_new(rb_cV8Object, obj);
 }
 
+Handle<Value> v8_object_cast(VALUE value)
+{
+  HandleScope scope;
+  Local<Object> obj = Object::New();    
+  VALUE hsh = rb_funcall2(value, rb_intern("to_hash"), 0, NULL);
+  VALUE keys = rb_funcall2(value, rb_intern("keys"), 0, NULL);
+
+  // TODO: for sure there is more efficient way to retrieve all hash
+  // values and keys, some enumerator/iterator?
+  for (int i = 0; i < RARRAY_LEN(keys); i++) {
+    VALUE key = rb_ary_entry(keys, i);
+    obj->Set(to_v8(key)->ToString(), to_v8(rb_hash_aref(hsh, key)));
+  }
+  
+  return scope.Close(obj);
+}
+
 /* Local helpers */
 
 Handle<Object> unwrap(VALUE value)
@@ -25,10 +42,19 @@ Handle<Object> unwrap(VALUE value)
 
 /* V8::Object methods */
 
-static VALUE rb_v8_object_new(VALUE self)
+static VALUE rb_v8_object_new(int argc, VALUE *argv, VALUE self)
 {
   HandleScope scope;
-  return v8_ref_new(self, Object::New());
+
+  switch (argc) {
+  case 0:
+    return v8_ref_new(self, Object::New());
+  case 1:
+    return v8_ref_new(self, v8_object_cast(argv[0]));
+  default:
+    rb_raise(rb_eArgError, "wrong number of arguments (%d for 0..1)", argc);
+    return Qnil;
+  }
 }
 
 /*
@@ -109,7 +135,7 @@ static VALUE rb_v8_object_keys(VALUE self)
 void Init_V8_Object()
 {
   rb_cV8Object = rb_define_class_under(rb_mV8, "Object", rb_cObject);
-  rb_define_singleton_method(rb_cV8Object, "new", RUBY_METHOD_FUNC(rb_v8_object_new), 0);
+  rb_define_singleton_method(rb_cV8Object, "new", RUBY_METHOD_FUNC(rb_v8_object_new), -1);
   rb_define_method(rb_cV8Object, "[]", RUBY_METHOD_FUNC(rb_v8_object_get), 1);
   rb_define_method(rb_cV8Object, "get", RUBY_METHOD_FUNC(rb_v8_object_get), 1);
   rb_define_method(rb_cV8Object, "[]=", RUBY_METHOD_FUNC(rb_v8_object_set), 2);

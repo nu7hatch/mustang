@@ -6,6 +6,7 @@
 #include "v8_array.h"
 #include "v8_function.h"
 #include "v8_context.h"
+#include "v8_external.h"
 
 using namespace v8;
 
@@ -30,6 +31,8 @@ Handle<Value> to_v8(VALUE value)
     return v8_string_cast(value);
   case T_ARRAY:
     return v8_array_cast(value);
+  case T_HASH:
+    return v8_object_cast(value);
   default:
     if (rb_obj_is_kind_of(value, rb_cV8String)) {
       return v8_ref_get<String>(value);
@@ -41,8 +44,10 @@ Handle<Value> to_v8(VALUE value)
       return v8_ref_get<Function>(value);
     } else if (rb_obj_is_kind_of(value, rb_cV8Object)) {
       return v8_ref_get<Object>(value);
+    } else if (rb_obj_is_kind_of(value, rb_cV8External)) {
+      return v8_ref_get<External>(value);
     } else {
-      return Undefined();
+      return v8_external_cast(value);
     }
   }
 }
@@ -61,6 +66,8 @@ VALUE to_ruby(Handle<Value> value)
     return v8_function_cast(value);
   } else if (value->IsArray()) {
     return v8_array_cast(value);
+  } else if (value->IsExternal()) {
+    return v8_external_cast(value);
   } else if (value->IsObject()) {
     return v8_object_cast(value);
   }
@@ -73,6 +80,7 @@ OVERLOADED_V8_TO_RUBY_CAST(String);
 OVERLOADED_V8_TO_RUBY_CAST(Integer);
 OVERLOADED_V8_TO_RUBY_CAST(Function);
 OVERLOADED_V8_TO_RUBY_CAST(Array);
+OVERLOADED_V8_TO_RUBY_CAST(External);
 
 VALUE to_ruby(bool value)     { return value ? Qtrue : Qfalse; }
 VALUE to_ruby(double value)   { return rb_float_new(value); }

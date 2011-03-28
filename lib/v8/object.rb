@@ -1,15 +1,5 @@
 module V8
   class Object
-    class << self
-      alias_method :native_new, :new
-
-      def new(opts={})
-        obj = native_new
-        opts.each { |key, value| obj.set(key, value) }
-        obj
-      end
-    end
-    
     include Comparable
     include Enumerable
 

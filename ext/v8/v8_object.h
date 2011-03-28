@@ -9,6 +9,7 @@ using namespace v8;
 RUBY_EXTERN VALUE rb_cV8Object;
 
 /* API */
+Handle<Value> v8_object_cast(VALUE value);
 VALUE v8_object_cast(Handle<Value> value);
 void Init_V8_Object();
 

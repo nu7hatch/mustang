@@ -1,0 +1,28 @@
+require File.dirname(__FILE__) + '/../spec_helper'
+require 'stringio'
+
+describe V8::External do
+  subject { V8::External }
+  setup_context
+  
+  describe ".new" do
+    it "creates new v8 external" do
+      obj = StringIO.new
+      subject.new(obj).should be_kind_of(V8::External)
+    end
+  end
+  
+  describe "#value" do
+    it "sets and gets values of given key from current object" do
+      obj = StringIO.new
+      ext = subject.new(obj)
+      ext.value.should == obj
+    end
+
+    it "is aliased with #to_obj" do
+      obj = StringIO.new
+      ext = subject.new(obj)
+      ext.to_obj.should == obj
+    end
+  end
+end
