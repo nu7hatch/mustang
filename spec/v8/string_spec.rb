@@ -33,11 +33,16 @@ describe V8::String do
 
   describe "an instance" do
     it "is comparable" do
-      int = subject.new("foo")
-      int.should == "foo"
-      int.should_not == "bar"
-      int.should > "a"
-      int.should < "foobar"
+      str = subject.new("foo")
+      str.should == "foo"
+      str.should_not == "bar"
+      str.should > "a"
+      str.should < "foobar"
+    end
+    
+    it "is delegated properly" do
+      str = subject.new("foo")
+      str.delegate.should == str.to_s
     end
   end
 end

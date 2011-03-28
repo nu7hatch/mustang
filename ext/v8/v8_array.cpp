@@ -29,6 +29,7 @@ VALUE v8_array_cast(Handle<Value> value)
 }
 
 /* Local helpers */
+
 static Local<Array> unwrap(VALUE self)
 {
   return v8_ref_get<Array>(self);

@@ -5,25 +5,18 @@ require 'v8/integer'
 require 'v8/number'
 require 'v8/array'
 require 'mustang/context'
+require 'support/delegated'
 
 module Mustang
+  extend Delegated
+
+  def self.delegate
+    global
+  end
+
   # Global context used by <tt>Mustang.evaluate</tt> and <tt>Mustang.load</tt>
   # singleton methods. 
   def self.global
     @global ||= Context.new
-  end
-
-  # Delegates all missing methods to global <tt>Mustang::Context</tt> instance. 
-
-  def self.method_missing(meth, *args, &block) # :nodoc:
-    if (global.respond_to?(meth))
-      global.send(meth, *args, &block)
-    else
-      super
-    end
-  end
-
-  def self.respond_to?(meth) # :nodoc:
-    global.respond_to?(meth) or super
   end
 end # Mustang

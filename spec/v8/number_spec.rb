@@ -21,27 +21,20 @@ describe V8::Number do
     end
   end
 
-  describe "#to_s" do
-    it "returns string representation of referenced value" do
-      subject.new(10.5).to_s.should == "10.5"
-    end
-  end
-
-  describe "#to_f" do
-    it "returns float representation of referenced value" do
-      subject.new(10.5).to_f.should == 10.5
-    end
-  end
-
   describe "an instance" do
     it "is comparable" do
-      int = subject.new(10.5)
-      int.should == 10.5
-      int.should_not == 20.5
-      int.should > 5.5
-      int.should < 15.5
-      int.should <= 10.5
-      int.should >= 10.5
+      num = subject.new(10.5)
+      num.should == 10.5
+      num.should_not == 20.5
+      num.should > 5.5
+      num.should < 15.5
+      num.should <= 10.5
+      num.should >= 10.5
+    end
+    
+    it "is delegated properly" do
+      num = subject.new(3.4)
+      num.delegate.should == num.to_f
     end
   end
 end

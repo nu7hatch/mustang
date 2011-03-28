@@ -68,5 +68,10 @@ describe V8::Array do
       ary.each {|x| res << x }
       res.should == [1,2,3]
     end
+
+    it "is delegated properly" do
+      ary = subject.new(1,2,3)
+      ary.delegate.should == ary.to_a
+    end
   end
 end

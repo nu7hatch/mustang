@@ -58,5 +58,11 @@ describe V8::Object do
       res['foo'].should == 1
       res['bar'].should == 2
     end
+
+    it "is delegated properly" do
+      obj = subject.new(:foo => 1, :bar => 2)
+      obj.delegate['foo'].should == 1
+      obj.delegate['bar'].should == 2
+    end
   end
 end

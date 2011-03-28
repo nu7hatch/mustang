@@ -1,7 +1,10 @@
+require 'support/delegated'
+
 module V8
   class Array
     include Comparable
     include Enumerable
+    include Delegated
 
     def <=>(other)
       to_a <=> other
@@ -11,8 +14,8 @@ module V8
       to_a.each(*args, &block)
     end
 
-    def to_s
-      to_a.to_s
+    def delegate
+      to_a
     end
   end # Array
 end # V8

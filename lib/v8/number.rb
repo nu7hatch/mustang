@@ -1,17 +1,16 @@
+require 'support/delegated'
+
 module V8
   class Number
     include Comparable
+    include Delegated
 
     def <=>(other)
       to_f <=> other
     end
 
-    def to_s
-      to_f.to_s
-    end
-
-    def to_i
-      to_f.to_i
+    def delegate
+      to_f
     end
   end # Number
 end # V8

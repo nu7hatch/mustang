@@ -1,7 +1,14 @@
+require 'support/delegated'
+
 module V8
   class Object
     include Comparable
     include Enumerable
+    #include Delegated
+
+    def to_hash
+      Hash[*keys.map {|key| [key.to_s, get(key)] }.flatten(1)]
+    end
 
     def <=>(other)
       to_hash <=> other
@@ -11,12 +18,8 @@ module V8
       to_hash.each(*args, &block)
     end
 
-    def to_hash
-      Hash[*keys.map {|key| [key, get(key)] }.flatten(1)]
-    end
-
-    def to_s
-      to_hash.to_s
+    def delegate
+      to_hash
     end
   end # Integer
 end # V8
