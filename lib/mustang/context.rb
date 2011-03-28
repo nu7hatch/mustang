@@ -32,5 +32,27 @@ module Mustang
         end
       }.last
     end
+
+    # Returns <tt>true</tt> when it is global (immortal) context.
+    def global?
+      false
+    end
   end # Context
+
+  # This kind of context is used by <tt>Mustang</tt> module. 
+  class GlobalContext < Context
+    def initialize(*)
+      super 
+      enter
+    end
+
+    def exit
+      # We have to disable exit, because global context is immortal. 
+      raise RuntimeError, "Global context can't be exited"
+    end
+    
+    def global?
+      true
+    end
+  end # GlobalContext
 end # Mustang

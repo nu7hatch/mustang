@@ -4,8 +4,9 @@ require 'v8/string'
 require 'v8/integer'
 require 'v8/number'
 require 'v8/array'
-require 'mustang/context'
+
 require 'support/delegated'
+require 'mustang/context'
 
 class Object
   # From now on each object can be easily converted to <tt>V8::*</tt> object
@@ -20,19 +21,19 @@ module Mustang
     global
   end
 
-  # Global context used by <tt>Mustang.evaluate</tt> and <tt>Mustang.load</tt>
-  # singleton methods. 
+  # Global context.
   def self.global
-    @global ||= Context.new
+    @global or reset!
+  end
+
+  # Resets global context state. Appartently just creates new global
+  # context and enters it. 
+  def self.reset!(*args, &block)
+    @global = GlobalContext.new(*args, &block)
   end
 
   # We need enter into global context to avoid segfaults. Apart of my laziness
   # keeping one global context is much easier than handling errors in all 
   # V8 datatypes implementation... 
   enter
-
-  # ... so we have to disable exit as well. 
-  def self.exit
-    raise RuntimeError, "Global V8 context can't be exited"
-  end
 end # Mustang
