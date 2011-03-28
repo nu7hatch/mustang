@@ -8,6 +8,7 @@
 #include "v8_function.h"
 #include "v8_context.h"
 #include "v8_external.h"
+#include "v8_macros.h"
 
 using namespace v8;
 

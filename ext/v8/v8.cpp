@@ -9,10 +9,6 @@
 #include "v8_function.h"
 #include "v8_external.h"
 
-#ifndef rb_sym_to_s
-#define rb_sym_to_s(sym) rb_funcall2(sym, rb_intern("to_s"), 0, NULL)
-#endif
-
 extern "C" void Init_v8() {
   Init_V8();
   Init_V8_Cast();
