@@ -24,10 +24,13 @@ module Mustang
     #   rt.load("foo.js", "bar.js")
     #
     def load(*files)
-      files.each { |filename|
-        raise ScriptNotFoundError, "Script `#{filename}' does not exts." unless File.exists?(filename)
-        evaluate(File.read(filename), {}, filename)
-      }
+      files.map { |filename|
+        if File.exists?(filename)
+          evaluate(File.read(filename), {}, filename)
+        else
+          raise ScriptNotFoundError, "Script `#{filename}' does not exts."
+        end
+      }.last
     end
   end # Context
 end # Mustang
