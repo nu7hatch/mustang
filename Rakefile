@@ -1,5 +1,11 @@
 # -*- ruby -*-
 
+begin 
+  require 'isolate/now'
+rescue LoadError
+  STDERR.puts "Run `gem install isolate` to install 'isolate'."
+end
+
 begin
   require 'ore/tasks'
   Ore::Tasks.new
@@ -12,8 +18,8 @@ begin
   Rake::ExtensionTask.new("v8") do |ext|
     ext.lib_dir = 'lib'
     ext.source_pattern = "*.{cpp,h}"
-    ext.config_options << '--with-v8-include'
-    ext.config_options << '--with-v8-lib'
+    #ext.config_options << '--with-v8-include'
+    #ext.config_options << '--with-v8-lib'
   end
 rescue LoadError
   STDERR.puts "Run `gem install rake-compiler` to install 'rake-compiler'."
@@ -36,7 +42,6 @@ task :default => :test
 begin
   require 'metric_fu'
 rescue LoadError
-  STDERR.puts "Run `gem install metric_fu` to install Metric-Fu"
 end
 
 require 'rake/rdoctask'

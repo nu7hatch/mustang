@@ -11,3 +11,4 @@ pkg
 tmp
 eproject.cfg
 .eproject
+*.bundle
