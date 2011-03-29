@@ -2,6 +2,7 @@
 #include "v8_cast.h"
 #include "v8_context.h"
 #include "v8_macros.h"
+#include "v8_exceptions.h"
 
 using namespace v8;
 
@@ -9,11 +10,6 @@ VALUE rb_cV8Context;
 UNWRAPPER(Context);
 
 /* Local helpers */
-
-void v8_context_report_errors(VALUE self, TryCatch *try_catch)
-{
-  // TODO...
-}
 
 Handle<Object> v8_context_get_prototype(VALUE self)
 {
@@ -36,11 +32,46 @@ static VALUE rb_v8_context_new(VALUE self)
   Persistent<Context> context(Context::New());
 
   VALUE ref = v8_ref_new(self, context);
+  rb_iv_set(ref, "@errors", rb_ary_new());
 
   context.Dispose();
   return ref;
 }
-      
+
+/*
+ * call-seq:
+ *   cxt.enter                => true or false
+ *   cxt.enter { |cxt| ... }  => nil
+ *
+ * Enters to context. Returns <code>true</code> when enter action has
+ * been performed. If current context is already entered then returns
+ * <code>false</code>.
+ *
+ * If block passed then context enters only for block execution, and
+ * exits imidietely after that.
+ *
+ */
+static VALUE rb_v8_context_enter(VALUE self)
+{
+  HandleScope scope;
+  Handle<Context> context = unwrap(self);
+
+  VALUE entered = Qfalse;
+
+  if (Context::GetEntered() != context) {
+    context->Enter();
+    entered = Qtrue;
+  }
+  
+  if (rb_block_given_p()) {
+    rb_yield(self);
+    context->Exit();
+    return Qnil; 
+  }
+  
+  return entered;
+}
+
 /*
  * call-seq:
  *   cxt.eval(source, filename)      => result
@@ -57,20 +88,10 @@ static VALUE rb_v8_context_new(VALUE self)
 static VALUE rb_v8_context_evaluate(VALUE self, VALUE source, VALUE filename)
 {
   HandleScope scope;
-  Local<Context> context = unwrap(self);
-  Local<Context> entered = Context::GetEntered();
-  //Context::Scope context_scope(unwrap(self));
-
-  if (!Context::InContext()) {
-    context->Enter();
-  } else {
-    if (entered != context) {
-      context->Enter();
-    }
-  }
-  
   Local<String> _source(String::Cast(*to_v8(source)));
   Local<String> _filename(String::Cast(*to_v8(filename)));
+
+  rb_v8_context_enter(self);
 
   TryCatch try_catch;
   Local<Script> script = Script::Compile(_source, _filename);
@@ -83,7 +104,14 @@ static VALUE rb_v8_context_evaluate(VALUE self, VALUE source, VALUE filename)
     }
   }
 
-  v8_context_report_errors(self, &try_catch);
+  VALUE exception = rb_v8_exception_new2(&try_catch);
+  rb_ary_push(rb_iv_get(self, "@errors"), exception);
+
+  //if (rb_iv_get("@debug") == Qtrue) {
+  //  // TODO: Change to proper error
+  //  rb_raise(rb_eRuntimeError, rb_funcall2(exception, rb_intern("message"), 0));
+  //}
+
   return Qnil;
 }
 
@@ -141,40 +169,6 @@ static VALUE rb_v8_context_global(VALUE self)
 
 /*
  * call-seq:
- *   cxt.enter                => true or false
- *   cxt.enter { |cxt| ... }  => nil
- *
- * Enters to context. Returns <code>true</code> when enter action has
- * been performed. If current context is already entered then returns
- * <code>false</code>.
- *
- * If block passed then context enters only for block execution, and
- * exits imidietely after that.
- *
- */
-static VALUE rb_v8_context_enter(VALUE self)
-{
-  HandleScope scope;
-  Handle<Context> context = unwrap(self);
-
-  VALUE entered = Qfalse;
-
-  if (Context::GetEntered() != context) {
-    context->Enter();
-    entered = Qtrue;
-  }
-  
-  if (rb_block_given_p()) {
-    rb_yield(self);
-    context->Exit();
-    return Qnil; 
-  }
-  
-  return entered;
-}
-
-/*
- * call-seq:
  *   cxt.exit  => nil
  *
  * Exits from context.
@@ -216,4 +210,5 @@ void Init_V8_Context()
   rb_define_method(rb_cV8Context, "enter", RUBY_METHOD_FUNC(rb_v8_context_enter), 0);
   rb_define_method(rb_cV8Context, "exit", RUBY_METHOD_FUNC(rb_v8_context_exit), 0);
   rb_define_method(rb_cV8Context, "entered?", RUBY_METHOD_FUNC(rb_v8_context_entered_p), 0);
+  rb_define_attr(rb_cV8Context, "errors", 1, 0);
 }
