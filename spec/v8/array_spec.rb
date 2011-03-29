@@ -3,6 +3,10 @@ require File.dirname(__FILE__) + '/../spec_helper'
 describe V8::Array do 
   subject { V8::Array }
   setup_context
+
+  it "inherits V8::Object" do
+    subject.new(1,2,3).should be_kind_of(V8::Object)
+  end  
   
   describe ".new" do
     context "when no params given" do

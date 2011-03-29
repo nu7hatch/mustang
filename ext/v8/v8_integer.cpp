@@ -1,41 +1,35 @@
 #include "v8_ref.h"
 #include "v8_cast.h"
-#include "v8_object.h"
+#include "v8_value.h"
 #include "v8_integer.h"
+#include "v8_macros.h"
 
 using namespace v8;
 
 VALUE rb_cV8Integer;
+UNWRAPPER(Integer);
 
 /* Typecasting */
 
-VALUE v8_integer_cast(Handle<Value> value)
+Handle<Value> to_v8_integer(VALUE value)
 {
-  HandleScope scope;
-  Local<Integer> val = Integer::Cast(*value);
-  return v8_ref_new(rb_cV8Integer, val);
+  return Integer::New(FIX2LONG(value));
 }
-
-Handle<Value> v8_integer_cast(VALUE value)
-{
-  HandleScope scope;
-  return scope.Close(Integer::New(FIX2LONG(value)));
-}
-
-/* Local helpers */
-
-static Local<Integer> unwrap(VALUE self)
-{
-  return v8_ref_get<Integer>(self);
-}  
 
 /* V8::Integer methods */
 
-static VALUE rb_v8_integer_new(VALUE klass, VALUE data)
+/*
+ * call-seq:
+ *   V8::Integer.new(int)  => new_integer
+ *
+ * Returns new V8 integer reflected from given fixnum value.
+ *
+ */
+VALUE rb_v8_integer_new(VALUE klass, VALUE data)
 {
   HandleScope scope;
   VALUE num = rb_funcall2(data, rb_intern("to_i"), 0, NULL);
-  return v8_ref_new(klass, v8_integer_cast(num));
+  return v8_ref_new(klass, to_v8_integer(num));
 }
 
 /*
@@ -59,11 +53,18 @@ static VALUE rb_v8_number_to_i(VALUE self)
   }
 }
 
+/* Public constructors */
+
+VALUE rb_v8_integer_new2(VALUE data)
+{
+  return rb_v8_integer_new(rb_cV8Integer, data);
+}
+
 
 /* V8::Integer initializer. */
 void Init_V8_Integer()
 {
-  rb_cV8Integer = rb_define_class_under(rb_mV8, "Integer", rb_cV8Object);
+  rb_cV8Integer = rb_define_class_under(rb_mV8, "Integer", rb_cV8Value);
   rb_define_singleton_method(rb_cV8Integer, "new", RUBY_METHOD_FUNC(rb_v8_integer_new), 1);
   rb_define_method(rb_cV8Integer, "to_i", RUBY_METHOD_FUNC(rb_v8_number_to_i), 0);
 }

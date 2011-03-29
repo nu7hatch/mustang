@@ -4,9 +4,9 @@ require File.dirname(__FILE__) + '/../spec_helper'
 describe V8::String do
   subject { V8::String }
   setup_context
-  
-  it "inherits V8::Object" do
-    subject.new("foo").should be_kind_of(V8::Object)
+
+  it "inherits V8::Value" do
+    subject.new("foo").should be_kind_of(V8::Value)
   end
 
   describe ".new" do

@@ -4,6 +4,11 @@ describe V8::Function do
   subject { V8::Function }
   setup_context
 
+  it "inherits V8::Object" do
+    pending
+    subject.new(lambda{ "foo" }).should be_kind_of(V8::Object)
+  end
+
   describe ".new" do
     it "creates new function pointed to proc/lambda"
   end

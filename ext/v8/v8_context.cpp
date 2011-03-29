@@ -1,17 +1,14 @@
 #include "v8_ref.h"
 #include "v8_cast.h"
 #include "v8_context.h"
+#include "v8_macros.h"
 
 using namespace v8;
 
 VALUE rb_cV8Context;
+UNWRAPPER(Context);
 
 /* Local helpers */
-
-static Local<Context> unwrap(VALUE self)
-{
-  return v8_ref_get<Context>(self);
-}
 
 void v8_context_report_errors(VALUE self, TryCatch *try_catch)
 {
@@ -25,7 +22,14 @@ Handle<Object> v8_context_get_prototype(VALUE self)
 }
 
 /* V8::Context methods */
-      
+
+/*
+ * call-seq:
+ *   V8::Context.new  => new_context
+ *
+ * Returns new V8 context.
+ *
+ */
 static VALUE rb_v8_context_new(VALUE self)
 {
   HandleScope scope;

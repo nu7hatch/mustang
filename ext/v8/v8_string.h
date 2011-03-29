@@ -9,8 +9,8 @@ using namespace v8;
 RUBY_EXTERN VALUE rb_cV8String;
 
 /* API */
-VALUE v8_string_cast(Handle<Value> value);
-Handle<Value> v8_string_cast(VALUE value);
+Handle<Value> to_v8_string(VALUE value);
+VALUE rb_v8_string_new2(VALUE data);
 void Init_V8_String();
 
 #endif//__V8_STRING_H

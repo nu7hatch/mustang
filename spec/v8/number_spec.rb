@@ -4,8 +4,8 @@ describe V8::Number do
   subject { V8::Number }
   setup_context
   
-  it "inherits V8::Object" do
-    subject.new(10.5).should be_kind_of(V8::Object)
+  it "inherits V8::Value" do
+    subject.new(10.5).should be_kind_of(V8::Value)
   end
 
   describe ".new" do

@@ -7,7 +7,7 @@
 RUBY_EXTERN VALUE rb_cV8Function;
 
 /* API */
-VALUE v8_function_cast(v8::Handle<v8::Value> value);
+VALUE to_v8_function(v8::Handle<v8::Value> value);
 void Init_V8_Function();
 
 #endif//__V8_FUNCTION_H

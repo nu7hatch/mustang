@@ -2,33 +2,21 @@
 #include "v8_cast.h"
 #include "v8_object.h"
 #include "v8_function.h"
+#include "v8_macros.h"
 
 using namespace v8;
 
 VALUE rb_cV8Function;
+UNWRAPPER(Function);
 
 /* Typecasting */
 
-VALUE v8_function_cast(Handle<Value> value)
-{
-  HandleScope scope;
-  Local<Function> func = Function::Cast(*value);
-  return v8_ref_new(rb_cV8Function, func);
-}
-
-Handle<Value> v8_function_cast(VALUE value)
+Handle<Value> to_v8_function(VALUE value)
 {
   //HandleScope scope;
   //return scope.Close(Function::New());
   return Null();
 }
-
-/* Local heleprs */
-
-static Local<Function> unwrap(VALUE self)
-{
-  return v8_ref_get<Function>(self);
-}  
 
 /* V8::Function methods */
 

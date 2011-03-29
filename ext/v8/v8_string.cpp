@@ -1,41 +1,35 @@
 #include "v8_ref.h"
 #include "v8_cast.h"
-#include "v8_object.h"
+#include "v8_value.h"
 #include "v8_string.h"
+#include "v8_macros.h"
 
 using namespace v8;
 
 VALUE rb_cV8String;
+UNWRAPPER(String);
 
 /* Typecasting helpers */
 
-VALUE v8_string_cast(Handle<Value> value)
+Handle<Value> to_v8_string(VALUE value)
 {
-  HandleScope scope;
-  Local<String> str = String::Cast(*value);
-  return v8_ref_new(rb_cV8String, str);
+  return String::New(StringValuePtr(value));
 }
-
-Handle<Value> v8_string_cast(VALUE value)
-{
-  HandleScope scope;
-  return scope.Close(String::New(StringValuePtr(value)));
-}
-
-/* Local helpers */
-
-static Local<String> unwrap(VALUE self)
-{
-  return v8_ref_get<String>(self);
-}  
 
 /* V8::String methods */
 
+/*
+ * call-seq:
+ *   V8::String.new(str)  => new_string
+ *
+ * Returns new V8 string reflected from given string.
+ *
+ */
 static VALUE rb_v8_string_new(VALUE klass, VALUE data)
 {
   HandleScope scope;
   VALUE str = rb_funcall2(data, rb_intern("to_s"), 0, NULL);
-  return v8_ref_new(klass, v8_string_cast(str));
+  return v8_ref_new(klass, to_v8_string(str));
 }
 
 /*
@@ -65,11 +59,18 @@ static VALUE rb_v8_string_to_ascii(VALUE self)
   return rb_str_new2(*String::AsciiValue(unwrap(self)));
 }
 
+/* Public constructors */
+
+VALUE rb_v8_string_new2(VALUE data)
+{
+  return rb_v8_string_new(rb_cV8String, data);
+}
+
 
 /* V8::String initializer. */
 void Init_V8_String()
 {
-  rb_cV8String = rb_define_class_under(rb_mV8, "String", rb_cV8Object);
+  rb_cV8String = rb_define_class_under(rb_mV8, "String", rb_cV8Value);
   rb_define_singleton_method(rb_cV8String, "new", RUBY_METHOD_FUNC(rb_v8_string_new), 1);
   rb_define_method(rb_cV8String, "to_ascii", RUBY_METHOD_FUNC(rb_v8_string_to_ascii), 0);
   rb_define_method(rb_cV8String, "to_utf8", RUBY_METHOD_FUNC(rb_v8_string_to_utf8), 0);

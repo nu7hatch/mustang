@@ -3,6 +3,10 @@ require File.dirname(__FILE__) + '/../spec_helper'
 describe V8::Object do
   subject { V8::Object }
   setup_context
+
+  it "inherits V8::Value" do
+    subject.new(:foo => 1).should be_kind_of(V8::Value)
+  end
   
   describe ".new" do
     it "creates new v8 object" do

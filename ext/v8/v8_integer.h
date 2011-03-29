@@ -9,8 +9,8 @@ using namespace v8;
 RUBY_EXTERN VALUE rb_cV8Integer;
 
 /* API */
-VALUE v8_integer_cast(Handle<Value> value);
-Handle<Value> v8_integer_cast(VALUE value);
+Handle<Value> to_v8_integer(VALUE value);
+VALUE rb_v8_integer_new2(VALUE data);
 void Init_V8_Integer();
 
 #endif//__V8_INTEGER_H

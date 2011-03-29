@@ -2,14 +2,16 @@
 #include "v8_cast.h"
 #include "v8_object.h"
 #include "v8_string.h"
+#include "v8_macros.h"
 
 using namespace v8;
 
 VALUE rb_cV8Array;
+UNWRAPPER(Array);
 
 /* Typecasting helpers */
 
-Handle<Value> v8_array_cast(VALUE value)
+Handle<Value> to_v8_array(VALUE value)
 {
   HandleScope scope;
   Local<Array> ary = Array::New();
@@ -18,31 +20,25 @@ Handle<Value> v8_array_cast(VALUE value)
     ary->Set(i, to_v8(rb_ary_entry(value, i)));
   }
   
-  return scope.Close(ary);
-}
-
-VALUE v8_array_cast(Handle<Value> value)
-{
-  HandleScope scope;
-  Local<Array> ary = Array::Cast(*value);
-  return v8_ref_new(rb_cV8Array, ary);
-}
-
-/* Local helpers */
-
-static Local<Array> unwrap(VALUE self)
-{
-  return v8_ref_get<Array>(self);
+  return ary;
 }
 
 /* V8::Array methods */
 
+/*
+ * call-seq:
+ *   V8::Array.new         => new_array
+ *   V8::Array.new(array)  => new_array
+ *
+ * Returns a new V8 array.
+ *
+ */
 static VALUE rb_v8_array_new(VALUE klass, VALUE data)
 {
   HandleScope scope;
   VALUE ary = rb_funcall2(data, rb_intern("to_a"), 0, NULL);
-  return v8_ref_new(klass, v8_array_cast(ary));
-} 
+  return v8_ref_new(klass, to_v8_array(ary));
+}
 
 /*
  * call-seq:
@@ -130,6 +126,18 @@ VALUE rb_v8_array_length(VALUE self)
 {
   HandleScope scope;
   return to_ruby(unwrap(self)->Length());
+}
+
+/* Public constructors */
+
+VALUE rb_v8_array_new2(VALUE data)
+{
+  return rb_v8_array_new(rb_cV8Array, data);
+}
+
+VALUE rb_v8_array_new3()
+{
+  return rb_v8_array_new(rb_cV8Array, rb_ary_new());
 }
 
 

@@ -8,6 +8,11 @@ RSpec.configure do |config|
   config.mock_with :mocha
 end
 
+def debug
+  require 'ruby-debug'
+  debugger
+end
+
 def setup_context
   let(:cxt) { V8::Context.new }
   before { cxt.enter }

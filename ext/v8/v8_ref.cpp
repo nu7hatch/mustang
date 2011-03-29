@@ -1,4 +1,6 @@
 #include "v8_ref.h"
+#include "v8_cast.h"
+#include "v8_external.h"
 
 using namespace v8;
 
@@ -14,10 +16,10 @@ void gc_v8_object_free(v8_ref *r)
  *   v8_ref_new(rb_cV8String, String::Cast(*value));
  *
  */
-VALUE v8_ref_new(VALUE obj, Handle<void> handle)
+VALUE v8_ref_new(VALUE klass, Handle<void> handle)
 {
   v8_ref *r = new v8_ref(handle);
-  return Data_Wrap_Struct(obj, 0, gc_v8_object_free, r);
+  return Data_Wrap_Struct(klass, 0, gc_v8_object_free, r);
 }
 
 /* The v8_ref struct methods. */

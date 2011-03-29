@@ -95,7 +95,7 @@ describe "Typecasting" do
     end
 
     it "converts arrays properly" do
-      cxt[:foo] = [1,2,3]
+      cxt[:foo] = [1,2,3] 
       cxt.eval("foo[0] == 1", "<eval>").should be
       cxt.eval("foo[1] == 2", "<eval>").should be
       cxt.eval("foo[2] == 3", "<eval>").should be

@@ -4,6 +4,10 @@ require 'stringio'
 describe V8::External do
   subject { V8::External }
   setup_context
+
+  it "inherits V8::Value" do
+    subject.new(StringIO.new).should be_kind_of(V8::Value)
+  end
   
   describe ".new" do
     it "creates new v8 external" do

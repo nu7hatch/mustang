@@ -1,25 +1,22 @@
 #include "v8_ref.h"
 #include "v8_cast.h"
 #include "v8_object.h"
+#include "v8_value.h"
 #include "v8_string.h"
+#include "v8_macros.h"
 
 using namespace v8;
 
 VALUE rb_cV8Object;
+UNWRAPPER(Object);
 
 /* Typecasting helpers */
 
-VALUE v8_object_cast(Handle<Value> value)
+Handle<Value> to_v8_object(VALUE value)
 {
   HandleScope scope;
-  Local<Object> obj = Object::Cast(*value);
-  return v8_ref_new(rb_cV8Object, obj);
-}
-
-Handle<Value> v8_object_cast(VALUE value)
-{
-  HandleScope scope;
-  Local<Object> obj = Object::New();    
+  Local<Object> obj = Object::New();
+  
   VALUE hsh = rb_funcall2(value, rb_intern("to_hash"), 0, NULL);
   VALUE keys = rb_funcall2(value, rb_intern("keys"), 0, NULL);
 
@@ -30,27 +27,28 @@ Handle<Value> v8_object_cast(VALUE value)
     obj->Set(to_v8(key)->ToString(), to_v8(rb_hash_aref(hsh, key)));
   }
   
-  return scope.Close(obj);
-}
-
-/* Local helpers */
-
-static Handle<Object> unwrap(VALUE value)
-{
-  return v8_ref_get<Object>(value);
+  return obj;
 }
 
 /* V8::Object methods */
 
-static VALUE rb_v8_object_new(int argc, VALUE *argv, VALUE self)
+/*
+ * call-seq:
+ *   V8::Object.new
+ *   V8::Object.new(hash)  => new_object
+ *
+ * Returns new V8 object.
+ *
+ */
+static VALUE rb_v8_object_new(int argc, VALUE *argv, VALUE klass)
 {
   HandleScope scope;
 
   switch (argc) {
   case 0:
-    return v8_ref_new(self, Object::New());
+    return v8_ref_new(klass, Object::New());
   case 1:
-    return v8_ref_new(self, v8_object_cast(argv[0]));
+    return v8_ref_new(klass, to_v8_object(argv[0]));
   default:
     rb_raise(rb_eArgError, "wrong number of arguments (%d for 0..1)", argc);
     return Qnil;
@@ -130,11 +128,23 @@ static VALUE rb_v8_object_keys(VALUE self)
   return keys;
 }
 
+/* Public constructors */
+
+VALUE rb_v8_object_new2(VALUE data)
+{
+  return rb_v8_object_new(1, &data, rb_cV8Object);
+}
+
+VALUE rb_v8_object_new3()
+{
+  return rb_v8_object_new(0, NULL, rb_cV8Object);
+}
+
 
 /* V8::Object class initializer. */
 void Init_V8_Object()
 {
-  rb_cV8Object = rb_define_class_under(rb_mV8, "Object", rb_cObject);
+  rb_cV8Object = rb_define_class_under(rb_mV8, "Object", rb_cV8Value);
   rb_define_singleton_method(rb_cV8Object, "new", RUBY_METHOD_FUNC(rb_v8_object_new), -1);
   rb_define_method(rb_cV8Object, "[]", RUBY_METHOD_FUNC(rb_v8_object_get), 1);
   rb_define_method(rb_cV8Object, "get", RUBY_METHOD_FUNC(rb_v8_object_get), 1);

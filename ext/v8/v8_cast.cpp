@@ -1,5 +1,6 @@
 #include "v8_ref.h"
 #include "v8_cast.h"
+#include "v8_value.h"
 #include "v8_object.h"
 #include "v8_string.h"
 #include "v8_integer.h"
@@ -11,6 +12,12 @@
 #include "v8_macros.h"
 
 using namespace v8;
+
+#define OVERLOAD_TO_RUBY_WITH(from)		   \
+  VALUE to_ruby(Handle<from> value)		   \
+  {						   \
+    return to_ruby((Handle<Value>) value);	   \
+  }
 
 Handle<Value> to_v8(VALUE value)
 {
@@ -24,30 +31,20 @@ Handle<Value> to_v8(VALUE value)
   case T_SYMBOL:
     return to_v8(rb_sym_to_s(value));
   case T_FIXNUM:
-    return v8_integer_cast(value);
+    return to_v8(rb_v8_integer_new2(value));
   case T_FLOAT:
-    return v8_number_cast(value);
+    return to_v8(rb_v8_number_new2(value));
   case T_STRING:
-    return v8_string_cast(value);
+    return to_v8(rb_v8_string_new2(value));
   case T_ARRAY:
-    return v8_array_cast(value);
+    return to_v8(rb_v8_array_new2(value));
   case T_HASH:
-    return v8_object_cast(value);
+    return to_v8(rb_v8_object_new2(value));
   default:
-    if (rb_obj_is_kind_of(value, rb_cV8String)) {
-      return v8_ref_get<String>(value);
-    } else if (rb_obj_is_kind_of(value, rb_cV8Integer)) {
-      return v8_ref_get<Integer>(value);
-    } else if (rb_obj_is_kind_of(value, rb_cV8Array)) {
-      return v8_ref_get<Array>(value);
-    } else if (rb_obj_is_kind_of(value, rb_cV8Function)) {
-      return v8_ref_get<Function>(value);
-    } else if (rb_obj_is_kind_of(value, rb_cV8Object)) {
-      return v8_ref_get<Object>(value);
-    } else if (rb_obj_is_kind_of(value, rb_cV8External)) {
-      return v8_ref_get<External>(value);
+    if (rb_obj_is_kind_of(value, rb_cV8Value)) {
+      return v8_ref_get<Value>(value);
     } else {
-      return v8_external_cast(value);
+      return to_v8(rb_v8_external_new2(value));
     }
   }
 }
@@ -59,32 +56,31 @@ VALUE to_ruby(Handle<Value> value)
   } else if (value->IsBoolean()) {
     return value->BooleanValue() ? Qtrue : Qfalse;
   } else if (value->IsUint32() || value->IsInt32()) {
-    return v8_integer_cast(value);
+    return to_ruby_without_peer<Integer>(value, rb_cV8Integer);
   } else if (value->IsNumber()) {
-    return v8_number_cast(value);
+    return to_ruby_without_peer<Number>(value, rb_cV8Number);
   } else if (value->IsString()) {
-    return v8_string_cast(value);
+    return to_ruby_without_peer<String>(value, rb_cV8String);
   } else if (value->IsFunction()) {
-    return v8_function_cast(value);
+    return to_ruby_with_peer<Function>(value, rb_cV8Function);
   } else if (value->IsArray()) {
-    return v8_array_cast(value);
+    return to_ruby_with_peer<Array>(value, rb_cV8Array);
   } else if (value->IsExternal()) {
-    return v8_external_cast(value);
+    return to_ruby_without_peer<External>(value, rb_cV8External);
   } else if (value->IsObject()) {
-    return v8_object_cast(value);
+    return to_ruby_with_peer<Object>(value, rb_cV8Object);
   }
 
   return Qnil;
 }
 
-OVERLOADED_V8_TO_RUBY_CAST(Object);
-OVERLOADED_V8_TO_RUBY_CAST(String);
-OVERLOADED_V8_TO_RUBY_CAST(Integer);
-OVERLOADED_V8_TO_RUBY_CAST(Int32);
-OVERLOADED_V8_TO_RUBY_CAST(Uint32);
-OVERLOADED_V8_TO_RUBY_CAST(Function);
-OVERLOADED_V8_TO_RUBY_CAST(Array);
-OVERLOADED_V8_TO_RUBY_CAST(External);
+OVERLOAD_TO_RUBY_WITH(String);
+OVERLOAD_TO_RUBY_WITH(Integer);
+OVERLOAD_TO_RUBY_WITH(Number);
+OVERLOAD_TO_RUBY_WITH(Function);
+OVERLOAD_TO_RUBY_WITH(Array);
+OVERLOAD_TO_RUBY_WITH(External);
+OVERLOAD_TO_RUBY_WITH(Object);
 
 VALUE to_ruby(bool value)     { return value ? Qtrue : Qfalse; }
 VALUE to_ruby(double value)   { return rb_float_new(value); }

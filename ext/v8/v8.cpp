@@ -1,6 +1,7 @@
 #include "v8_main.h"
 #include "v8_cast.h"
 #include "v8_context.h"
+#include "v8_value.h"
 #include "v8_object.h"
 #include "v8_string.h"
 #include "v8_integer.h"
@@ -13,6 +14,7 @@ extern "C" void Init_v8() {
   Init_V8();
   Init_V8_Cast();
   Init_V8_Context();
+  Init_V8_Value();
   Init_V8_Object();
   Init_V8_String();
   Init_V8_Integer();
