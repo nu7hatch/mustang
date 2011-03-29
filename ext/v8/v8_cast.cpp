@@ -43,6 +43,8 @@ Handle<Value> to_v8(VALUE value)
   default:
     if (rb_obj_is_kind_of(value, rb_cV8Value)) {
       return v8_ref_get<Value>(value);
+    } else if (rb_obj_is_kind_of(value, rb_cRange)) {
+      return to_v8(rb_any_to_ary(value));
     } else {
       return to_v8(rb_v8_external_new2(value));
     }

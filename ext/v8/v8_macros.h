@@ -6,6 +6,9 @@
 #define rb_sym_to_s(sym) rb_funcall2(sym, rb_intern("to_s"), 0, NULL)
 #endif
 
+/* Converts any object to array by triggering #to_a on it. */
+#define rb_any_to_ary(range) rb_funcall2(value, rb_intern("to_a"), 0, NULL)
+
 /* Name of hidden value which contains ruby peer object. */
 #define RUBY_PEER_ATTR "__RUBY_PEER__"
 

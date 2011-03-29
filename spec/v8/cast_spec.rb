@@ -106,5 +106,11 @@ describe "Typecasting" do
       cxt.eval("foo.a == 1", "<eval>").should be
       cxt.eval("foo.b == 2", "<eval>").should be
     end
+
+    it "converts ranges properly" do
+      cxt[:foo] = 1..2
+      cxt.eval("foo[0] == 1", "<eval>").should be
+      cxt.eval("foo[1] == 2", "<eval>").should be
+    end
   end
 end
