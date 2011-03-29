@@ -4,7 +4,7 @@ module V8
   class Object
     include Comparable
     include Enumerable
-    #include Delegated
+    include Delegated
 
     def to_hash
       Hash[*keys.map {|key| [key.to_s, get(key)] }.flatten(1)]
