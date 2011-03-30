@@ -1,7 +1,7 @@
 #ifndef __V8_EXCEPTIONS_H
 #define __V8_EXCEPTIONS_H
 
-#include "v8_main.h";
+#include "v8_main.h"
 
 using namespace v8;
 
