@@ -88,10 +88,12 @@ static VALUE rb_v8_context_enter(VALUE self)
 static VALUE rb_v8_context_evaluate(VALUE self, VALUE source, VALUE filename)
 {
   HandleScope scope;
+  
   Local<String> _source(String::Cast(*to_v8(source)));
   Local<String> _filename(String::Cast(*to_v8(filename)));
 
   rb_v8_context_enter(self);
+  rb_iv_set(self, "@error", Qfalse);  
 
   TryCatch try_catch;
   Local<Script> script = Script::Compile(_source, _filename);
@@ -104,13 +106,9 @@ static VALUE rb_v8_context_evaluate(VALUE self, VALUE source, VALUE filename)
     }
   }
 
-  VALUE exception = rb_v8_exception_new2(&try_catch);
-  rb_ary_push(rb_iv_get(self, "@errors"), exception);
-
-  //if (rb_iv_get("@debug") == Qtrue) {
-  //  // TODO: Change to proper error
-  //  rb_raise(rb_eRuntimeError, rb_funcall2(exception, rb_intern("message"), 0));
-  //}
+  VALUE ex = rb_v8_try_catch_as_exception(&try_catch);
+  rb_ary_push(rb_iv_get(self, "@errors"), ex);
+  rb_exc_raise(ex);
 
   return Qnil;
 }
@@ -210,5 +208,6 @@ void Init_V8_Context()
   rb_define_method(rb_cV8Context, "enter", RUBY_METHOD_FUNC(rb_v8_context_enter), 0);
   rb_define_method(rb_cV8Context, "exit", RUBY_METHOD_FUNC(rb_v8_context_exit), 0);
   rb_define_method(rb_cV8Context, "entered?", RUBY_METHOD_FUNC(rb_v8_context_entered_p), 0);
+  rb_define_attr(rb_cV8Context, "error", 1, 0);
   rb_define_attr(rb_cV8Context, "errors", 1, 0);
 }

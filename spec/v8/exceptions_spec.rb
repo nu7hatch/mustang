@@ -53,11 +53,45 @@ describe "Exception handling" do
       end
     end
  
-    describe "#message" do
-      it "contains error message string" do
-        cxt.eval("broken$code [{", "<eval>")
-        debug
-        cxt.errors.last.message.should == "foo"
+    describe "info methods" do
+      before do
+        cxt.eval("var foo=1;\nbroken$code [{", "<eval>")
+      end
+
+      describe "#message" do
+        it "returns error message string" do
+          cxt.errors.last.message.should == "Unexpected end of input"
+        end
+      end
+      
+      describe "#line_no" do
+        it "returns broken line number" do
+          cxt.errors.last.line_no.should == 2
+        end
+      end
+
+      describe "#script_name" do
+        it "returns broken script name" do
+          cxt.errors.last.script_name.should == "<eval>"
+        end
+      end
+
+      describe "#source_line" do
+        it "returns broken source line" do
+          cxt.errors.last.source_line.should == "broken$code [{"
+        end
+      end
+
+      describe "#column_start_no" do
+        it "returns start column of broken code" do
+          cxt.errors.last.column_start_no.should == 14
+        end
+      end
+
+      describe "#column_end_no" do
+        it "returns end column of broken code" do
+          cxt.errors.last.column_end_no.should == 14
+        end
       end
     end
   end

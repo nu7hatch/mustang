@@ -5,6 +5,9 @@ module Mustang
 
   # Extended and more user-friendly version of <tt>Mustang::V8::Context</tt>.
   class Context < V8::Context
+    attr_accessor :raise_errors
+    alias_method :raise_errors?, :raise_errors
+
     # Evaluates given javascript source. Before evaluation it's able to
     # set given local variables within current context, eg:
     #
@@ -14,7 +17,9 @@ module Mustang
     #   rt.evaliate("bar")                       # => 11
     #
     def evaluate(source, locals={}, filename="<eval>")
-      super(source, filename)
+      result = super(source, filename)
+      raise(error, error.message) if error and raise_errors?
+      return result
     end
     alias_method :eval, :evaluate
 
