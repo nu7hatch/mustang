@@ -5,8 +5,8 @@ describe V8::String do
   subject { V8::String }
   setup_context
 
-  it "inherits V8::Value" do
-    subject.new("foo").should be_kind_of(V8::Value)
+  it "inherits V8::Primitive" do
+    subject.new("foo").should be_kind_of(V8::Primitive)
   end
 
   describe ".new" do

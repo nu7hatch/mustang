@@ -56,7 +56,7 @@ VALUE rb_v8_number_new2(VALUE data)
 /* V8::Number initializer. */
 void Init_V8_Number()
 {
-  rb_cV8Number = rb_define_class_under(rb_mV8, "Number", rb_cV8Value);
+  rb_cV8Number = rb_define_class_under(rb_mV8, "Number", rb_cV8Primitive);
   rb_define_singleton_method(rb_cV8Number, "new", RUBY_METHOD_FUNC(rb_v8_number_new), 1);
   rb_define_method(rb_cV8Number, "to_f", RUBY_METHOD_FUNC(rb_v8_number_to_f), 0);
 }

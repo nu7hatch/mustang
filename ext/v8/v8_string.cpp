@@ -70,7 +70,7 @@ VALUE rb_v8_string_new2(VALUE data)
 /* V8::String initializer. */
 void Init_V8_String()
 {
-  rb_cV8String = rb_define_class_under(rb_mV8, "String", rb_cV8Value);
+  rb_cV8String = rb_define_class_under(rb_mV8, "String", rb_cV8Primitive);
   rb_define_singleton_method(rb_cV8String, "new", RUBY_METHOD_FUNC(rb_v8_string_new), 1);
   rb_define_method(rb_cV8String, "to_ascii", RUBY_METHOD_FUNC(rb_v8_string_to_ascii), 0);
   rb_define_method(rb_cV8String, "to_utf8", RUBY_METHOD_FUNC(rb_v8_string_to_utf8), 0);

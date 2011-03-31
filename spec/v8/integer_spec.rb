@@ -4,8 +4,9 @@ describe V8::Integer do
   subject { V8::Integer }
   setup_context
   
-  it "inherits V8::Value" do
-    subject.new(10).should be_kind_of(V8::Value)
+  it "inherits V8::Number" do
+    pending "Needs to separate V8::Number"
+    subject.new(10).should be_kind_of(V8::Number)
   end
 
   describe ".new" do

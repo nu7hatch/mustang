@@ -64,7 +64,7 @@ VALUE rb_v8_integer_new2(VALUE data)
 /* V8::Integer initializer. */
 void Init_V8_Integer()
 {
-  rb_cV8Integer = rb_define_class_under(rb_mV8, "Integer", rb_cV8Value);
+  rb_cV8Integer = rb_define_class_under(rb_mV8, "Integer", rb_cV8Primitive);
   rb_define_singleton_method(rb_cV8Integer, "new", RUBY_METHOD_FUNC(rb_v8_integer_new), 1);
   rb_define_method(rb_cV8Integer, "to_i", RUBY_METHOD_FUNC(rb_v8_number_to_i), 0);
 }
