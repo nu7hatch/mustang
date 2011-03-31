@@ -161,7 +161,7 @@ VALUE rb_v8_value_new2(VALUE data)
 /* V8::Value class initializer. */
 void Init_V8_Value()
 {
-  rb_cV8Value = rb_define_class_under(rb_mV8, "Value", rb_cObject);
+  rb_cV8Value = rb_define_class_under(rb_mV8, "Value", rb_cV8Data);
   rb_define_singleton_method(rb_cV8Value, "new", RUBY_METHOD_FUNC(rb_v8_value_new), 1);
   rb_define_method(rb_cV8Value, "object?", RUBY_METHOD_FUNC(rb_v8_value_object_p), 0);
   rb_define_method(rb_cV8Value, "integer?", RUBY_METHOD_FUNC(rb_v8_value_integer_p), 0);

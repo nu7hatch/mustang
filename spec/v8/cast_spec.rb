@@ -26,12 +26,16 @@ describe "Typecasting" do
   setup_context
 
   context "from js to ruby" do
-    it "converts null to nil" do
-      cxt.eval("null", "<eval>").should_not be
+    it "converts null properly" do
+      null = cxt.eval("null", "<eval>")
+      null.should be_kind_of(V8::Null)
+      null.should be_null
     end
 
     it "converts undefined value to nil" do
-      cxt.eval("undefined", "<eval>").should_not be
+      undefined = cxt.eval("undefined", "<eval>")
+      undefined.should be_kind_of(V8::Undefined)
+      undefined.should be_undefined
     end
 
     it "converts boolean values properly" do

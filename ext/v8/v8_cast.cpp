@@ -45,6 +45,12 @@ Handle<Value> to_v8(VALUE value)
       return v8_ref_get<Value>(value);
     } else if (rb_obj_is_kind_of(value, rb_cRange)) {
       return to_v8(rb_any_to_ary(value));
+    } else if (rb_obj_is_kind_of(value, rb_cV8Undefined)) {
+      return Undefined();
+    } else if (rb_obj_is_kind_of(value, rb_cV8Null)) {
+      return Null();
+    } else if (rb_obj_is_kind_of(value, rb_cV8Empty)) {
+      return Handle<Value>();    
     } else {
       return to_v8(rb_v8_external_new2(value));
     }
@@ -53,8 +59,12 @@ Handle<Value> to_v8(VALUE value)
 
 VALUE to_ruby(Handle<Value> value)
 {
-  if (value.IsEmpty() || value->IsUndefined() || value->IsNull()) {
-    return Qnil;
+  if (value.IsEmpty()) {
+    return rb_funcall(rb_cV8Empty, rb_intern("new"), 0, NULL);
+  } else if (value->IsUndefined()) {
+    return rb_funcall(rb_cV8Undefined, rb_intern("new"), 0, NULL);
+  } else if (value->IsNull()) {
+    return rb_funcall(rb_cV8Null, rb_intern("new"), 0, NULL);
   } else if (value->IsBoolean()) {
     return value->BooleanValue() ? Qtrue : Qfalse;
   } else if (value->IsUint32() || value->IsInt32()) {
