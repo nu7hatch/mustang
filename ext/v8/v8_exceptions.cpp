@@ -65,14 +65,14 @@ static VALUE rb_v8_exception_reference_error_p(VALUE self)
 
 /* Local helpers */
 
-VALUE message_from_v8_exc(Handle<Object> ex)
+VALUE rb_v8_exception_message(Handle<Object> ex)
 {
   HandleScope scope;
   String::AsciiValue error_msg(ex->Get(String::New("message")));
   return rb_str_new2(*error_msg);
 }
 
-VALUE type_of_v8_exc(Handle<Object> ex)
+VALUE rb_v8_exception_type(Handle<Object> ex)
 {
   HandleScope scope;
   Handle<Function> con(Function::Cast(*ex->Get(String::New("constructor"))));
@@ -95,16 +95,11 @@ VALUE type_of_v8_exc(Handle<Object> ex)
 
 /* Public constructors */
 
-VALUE rb_v8_try_catch_as_exception(TryCatch try_catch)
-{
-  return rb_v8_exception_new2(try_catch.Exception(), try_catch.Message());
-}
-
 VALUE rb_v8_exception_new2(Handle<Value> ex, Handle<Message> msg)
 {
   HandleScope scope;
   Handle<Object> exo(Object::Cast(*ex));
-  VALUE exc = rb_exc_new3(type_of_v8_exc(exo), message_from_v8_exc(exo));
+  VALUE exc = rb_exc_new3(rb_v8_exception_type(exo), rb_v8_exception_message(exo));
 
   rb_iv_set(exc, "@line_no", to_ruby(msg->GetLineNumber()));
   rb_iv_set(exc, "@source_line", to_ruby(msg->GetSourceLine()));
@@ -113,6 +108,11 @@ VALUE rb_v8_exception_new2(Handle<Value> ex, Handle<Message> msg)
   rb_iv_set(exc, "@end_col", to_ruby(msg->GetEndColumn()));
 
   return exc;
+}
+
+VALUE rb_v8_exception_new3(TryCatch try_catch)
+{
+  return rb_v8_exception_new2(try_catch.Exception(), try_catch.Message());
 }
 
 

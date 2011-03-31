@@ -106,7 +106,7 @@ static VALUE rb_v8_context_evaluate(VALUE self, VALUE source, VALUE filename)
     }
   }
 
-  return rb_v8_try_catch_as_exception(try_catch);
+  return rb_v8_exception_new3(try_catch);
 }
 
 /*
