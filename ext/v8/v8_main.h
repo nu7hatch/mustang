@@ -6,10 +6,6 @@
 
 /* V8 module */
 RUBY_EXTERN VALUE rb_mV8;
-RUBY_EXTERN VALUE rb_cV8Data;
-RUBY_EXTERN VALUE rb_cV8Empty;
-RUBY_EXTERN VALUE rb_cV8Undefined;
-RUBY_EXTERN VALUE rb_cV8Null;
 
 /* API */
 void Init_V8();
