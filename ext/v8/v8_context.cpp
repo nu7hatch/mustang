@@ -106,11 +106,7 @@ static VALUE rb_v8_context_evaluate(VALUE self, VALUE source, VALUE filename)
     }
   }
 
-  VALUE ex = rb_v8_try_catch_as_exception(&try_catch);
-  rb_ary_push(rb_iv_get(self, "@errors"), ex);
-  rb_exc_raise(ex);
-
-  return Qnil;
+  return rb_v8_try_catch_as_exception(try_catch);
 }
 
 /*
