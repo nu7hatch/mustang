@@ -17,7 +17,19 @@ VALUE rb_eV8SyntaxError;
 
 /*
  * call-seq:
- *   exc.syntax_error?
+ *   exc.error?  => true
+ *
+ * Always returns true.
+ *
+ */
+static VALUE rb_v8_exception_error_p(VALUE self)
+{
+  return true;
+}
+
+/*
+ * call-seq:
+ *   exc.syntax_error?  => true or false
  *
  * Returns <code>true</code> when it represents an syntax error.
  *
@@ -29,7 +41,7 @@ static VALUE rb_v8_exception_syntax_error_p(VALUE self)
 
 /*
  * call-seq:
- *   exc.range_error?
+ *   exc.range_error?  => true or false
  *
  * Returns <code>true</code> when it represents an range error.
  *
@@ -41,7 +53,7 @@ static VALUE rb_v8_exception_range_error_p(VALUE self)
 
 /*
  * call-seq:
- *   exc.reference_error?
+ *   exc.reference_error?  => true or false
  *
  * Returns <code>true</code> when it represents an reference error.
  *
@@ -111,6 +123,7 @@ void Init_V8_Exceptions()
   rb_define_method(rb_eV8Exception, "reference_error?", RUBY_METHOD_FUNC(rb_v8_exception_reference_error_p), 0);
   rb_define_method(rb_eV8Exception, "syntax_error?", RUBY_METHOD_FUNC(rb_v8_exception_syntax_error_p), 0);
   rb_define_method(rb_eV8Exception, "range_error?", RUBY_METHOD_FUNC(rb_v8_exception_range_error_p), 0);
+  rb_define_method(rb_eV8Exception, "error?", RUBY_METHOD_FUNC(rb_v8_exception_error_p), 0);
   rb_define_attr(rb_eV8Exception, "line_no", 1, 0);
   rb_define_attr(rb_eV8Exception, "source_line", 1, 0);
   rb_define_attr(rb_eV8Exception, "script_name", 1, 0);

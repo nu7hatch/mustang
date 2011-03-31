@@ -4,7 +4,9 @@ describe "Exception handling" do
   setup_context
 
   it "raises ruby exception when JS code is broken" do
-    expect { cxt.eval("broken$code", "<eval>") }.to raise_error(V8::Exception)
+    exc = cxt.eval("broken$code", "<eval>")
+    exc.should be_kind_of(V8::Exception)
+    exc.should be_error
   end
 end
 
@@ -20,11 +22,19 @@ describe V8::Exception do
   it "#range_error? returns false" do
     subject.should_not be_range_error
   end
+
+  it "#error? return true" do
+    subject.should be_error
+  end
 end
 
 describe V8::ReferenceError do
   it "#reference_error? returns true" do
     subject.should be_reference_error
+  end
+
+  it "#error? returns true" do
+    subject.should be_error
   end
 end
 
@@ -32,11 +42,19 @@ describe V8::SyntaxError do
   it "#syntax_error? returns true" do
     subject.should be_syntax_error
   end
+
+  it "#error? returns true" do
+    subject.should be_error
+  end
 end
 
 describe V8::RangeError do
   it "#range_error? returns true" do
     subject.should be_range_error
+  end
+
+  it "#error? returns true" do
+    subject.should be_error
   end
 end
 
@@ -44,11 +62,7 @@ describe V8::Exception do
   setup_context
 
   before :each do
-    begin
-      @exc = cxt.eval("foobar {", "<eval>")
-    rescue V8::Exception => ex
-      @exc = ex
-    end
+    @exc = cxt.eval("var a=1;\nbroken$code [{", "<eval>")
   end
 
   describe "#message" do
@@ -92,14 +106,14 @@ describe "Raised errors" do
   setup_context
 
   it "is an ReferenceError when used undefined reference" do
-    expect { cxt.eval("broken$code", "<eval>") }.to raise_error(V8::ReferenceError) 
+    cxt.eval("broken$code", "<eval>").should be_reference_error 
   end
 
   it "is an SyntaxError when invalid syntax" do
-    expect { cxt.eval("broken {[/", "<eval>") }.to raise_error(V8::SyntaxError) 
+    cxt.eval("broken {[/", "<eval>").should be_syntax_error
   end
 
   it "is an RangeError when maximum call stack exceeded" do
-    expect { cxt.eval("function a() { a() }; a()", "<eval>") }.to raise_error(V8::RangeError)
+    cxt.eval("function a() { a() }; a()", "<eval>").should be_range_error
   end
 end

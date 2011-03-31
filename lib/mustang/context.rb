@@ -3,11 +3,12 @@ module Mustang
   class ScriptNotFoundError < Errno::ENOENT 
   end
 
+  # Raised when try to exit from global context. 
+  class ImmortalContextError < RuntimeError
+  end
+
   # Extended and more user-friendly version of <tt>Mustang::V8::Context</tt>.
   class Context < V8::Context
-    attr_accessor :raise_errors
-    alias_method :raise_errors?, :raise_errors
-
     # Evaluates given javascript source. Before evaluation it's able to
     # set given local variables within current context, eg:
     #
@@ -17,9 +18,9 @@ module Mustang
     #   rt.evaliate("bar")                       # => 11
     #
     def evaluate(source, locals={}, filename="<eval>")
-      result = super(source, filename)
-      raise(error, error.message) if error and raise_errors?
-      return result
+      res = super(source, filename)
+      errors << res if result.error?
+      return res
     end
     alias_method :eval, :evaluate
 
@@ -38,6 +39,11 @@ module Mustang
       }.last
     end
 
+    # Returns list of errors encountered within this context. 
+    def errors
+      @errors ||= []
+    end
+
     # Returns <tt>true</tt> when it is global (immortal) context.
     def global?
       false
@@ -53,7 +59,7 @@ module Mustang
 
     def exit
       # We have to disable exit, because global context is immortal. 
-      raise RuntimeError, "Global context can't be exited"
+      raise ImmortalContextError, "Global context can't be exited"
     end
     
     def global?
