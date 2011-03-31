@@ -1,14 +1,17 @@
 #include "v8_ref.h"
 #include "v8_cast.h"
+#include "v8_base.h"
 #include "v8_value.h"
 #include "v8_object.h"
 #include "v8_string.h"
 #include "v8_integer.h"
 #include "v8_number.h"
+#include "v8_date.h"
 #include "v8_array.h"
 #include "v8_function.h"
 #include "v8_context.h"
 #include "v8_external.h"
+#include "v8_exceptions.h"
 #include "v8_macros.h"
 
 using namespace v8;
@@ -21,6 +24,8 @@ using namespace v8;
 
 Handle<Value> to_v8(VALUE value)
 {
+  HandleScope scope;
+  
   switch (TYPE(value)) {
   case T_NIL:
     return Null();
@@ -41,16 +46,18 @@ Handle<Value> to_v8(VALUE value)
   case T_HASH:
     return to_v8(rb_v8_object_new2(value));
   default:
-    if (rb_obj_is_kind_of(value, rb_cV8Value)) {
-      return v8_ref_get<Value>(value);
-    } else if (rb_obj_is_kind_of(value, rb_cRange)) {
+    if (rb_obj_is_kind_of(value, rb_cRange)) {
       return to_v8(rb_any_to_ary(value));
+    } else if (rb_obj_is_kind_of(value, rb_cTime)) {
+      return to_v8(rb_v8_date_new2(value));
+    } if (rb_obj_is_kind_of(value, rb_cV8Value)) {
+      return v8_ref_get<Value>(value);
     } else if (rb_obj_is_kind_of(value, rb_cV8Undefined)) {
       return Undefined();
     } else if (rb_obj_is_kind_of(value, rb_cV8Null)) {
       return Null();
     } else if (rb_obj_is_kind_of(value, rb_cV8Empty)) {
-      return Handle<Value>();    
+      return Handle<Value>();
     } else {
       return to_v8(rb_v8_external_new2(value));
     }
@@ -67,6 +74,8 @@ VALUE to_ruby(Handle<Value> value)
     return rb_funcall(rb_cV8Null, rb_intern("new"), 0, NULL);
   } else if (value->IsBoolean()) {
     return value->BooleanValue() ? Qtrue : Qfalse;
+  } else if (value->IsDate()) {
+    return to_ruby_without_peer<Date>(value, rb_cV8Date);
   } else if (value->IsUint32() || value->IsInt32()) {
     return to_ruby_without_peer<Integer>(value, rb_cV8Integer);
   } else if (value->IsNumber()) {
@@ -86,6 +95,17 @@ VALUE to_ruby(Handle<Value> value)
   return Qnil;
 }
 
+VALUE to_ruby(Handle<StackTrace> value)
+{
+  return to_ruby_no_cast<StackTrace>(value, rb_cV8StackTrace);
+}
+
+VALUE to_ruby(Handle<StackFrame> value)
+{
+  return to_ruby_no_cast<StackFrame>(value, rb_cV8StackFrame);
+}
+
+OVERLOAD_TO_RUBY_WITH(Boolean);
 OVERLOAD_TO_RUBY_WITH(String);
 OVERLOAD_TO_RUBY_WITH(Integer);
 OVERLOAD_TO_RUBY_WITH(Number);
