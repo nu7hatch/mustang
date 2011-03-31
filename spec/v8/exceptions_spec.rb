@@ -10,6 +10,32 @@ describe "Exception handling" do
   end
 end
 
+describe V8::StackTrace do
+  setup_context
+
+  before do 
+    #ex = cxt.eval("function a(b) { b+notexists }; function c(b) { a(b) }; c('foo');", "<eval>")
+    #ex.should be_error
+    #@trace = ex.stack_trace
+  end
+
+  describe "#length" do
+    it "returns stack frames count" do
+      pending
+      #@trace.length.should == 2
+    end
+
+    it "is aliased with #size" do
+      pending
+      #@trace.size.should == 2
+    end
+  end
+end
+
+describe V8::StackFrame do
+
+end
+
 describe V8::Exception do
   it "#reference_error? returns false" do
     subject.should_not be_reference_error
@@ -98,6 +124,12 @@ describe V8::Exception do
   describe "#end_col" do
     it "returns end column of broken code" do
       @exc.end_col.should == 14
+    end
+  end
+
+  describe "#stack_trace" do
+    it "returns stack trace array" do
+      @exc.stack_trace.should be_kind_of(V8::StackTrace)
     end
   end
 end

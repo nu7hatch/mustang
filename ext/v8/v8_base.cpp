@@ -1,6 +1,7 @@
 #include "v8_ref.h"
 #include "v8_cast.h"
 #include "v8_base.h"
+#include "v8_exceptions.h"
 #include "v8_macros.h"
 
 using namespace v8;
@@ -13,6 +14,18 @@ VALUE rb_cV8Null;
 VALUE rb_mSingleton = rb_eval_string("require 'singleton'; Singleton");
 
 /* V8::Data methods */
+
+/*
+ * call-seq:
+ *   data.error?  => true or false
+ *
+ * Returns <code>true</code> when value is a handled javascipt exception.
+ *
+ */
+static VALUE rb_v8_data_error_p(VALUE self)
+{
+  return rb_obj_is_kind_of(self, rb_eV8Exception);
+}
 
 /*
  * call-seq:
@@ -91,6 +104,7 @@ static VALUE rb_v8_undefined_to_s(VALUE self)
 void Init_V8_Data()
 {  
   rb_cV8Data = rb_define_class_under(rb_mV8, "Data", rb_cObject);
+  rb_define_method(rb_cV8Data, "error?", RUBY_METHOD_FUNC(rb_v8_data_error_p), 0);
   rb_define_method(rb_cV8Data, "null?", RUBY_METHOD_FUNC(rb_v8_data_null_p), 0);
   rb_define_method(rb_cV8Data, "empty?", RUBY_METHOD_FUNC(rb_v8_data_empty_p), 0);
   rb_define_method(rb_cV8Data, "undefined?", RUBY_METHOD_FUNC(rb_v8_data_undefined_p), 0);
