@@ -25,7 +25,7 @@ Handle<Value> to_v8_integer(VALUE value)
  * Returns new V8 integer reflected from given fixnum value.
  *
  */
-VALUE rb_v8_integer_new(VALUE klass, VALUE data)
+static VALUE rb_v8_integer_new(VALUE klass, VALUE data)
 {
   HandleScope scope;
   VALUE num = rb_funcall2(data, rb_intern("to_i"), 0, NULL);
@@ -39,7 +39,7 @@ VALUE rb_v8_integer_new(VALUE klass, VALUE data)
  * Returns fixnum value representation of referenced v8 integer.
  *
  */
-static VALUE rb_v8_number_to_i(VALUE self)
+static VALUE rb_v8_integer_to_i(VALUE self)
 {
   HandleScope scope;
   Local<Integer> num = unwrap(self);
@@ -66,5 +66,5 @@ void Init_V8_Integer()
 {
   rb_cV8Integer = rb_define_class_under(rb_mV8, "Integer", rb_cV8Primitive);
   rb_define_singleton_method(rb_cV8Integer, "new", RUBY_METHOD_FUNC(rb_v8_integer_new), 1);
-  rb_define_method(rb_cV8Integer, "to_i", RUBY_METHOD_FUNC(rb_v8_number_to_i), 0);
+  rb_define_method(rb_cV8Integer, "to_i", RUBY_METHOD_FUNC(rb_v8_integer_to_i), 0);
 }

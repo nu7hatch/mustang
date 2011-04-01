@@ -9,6 +9,7 @@
 #include "v8_date.h"
 #include "v8_array.h"
 #include "v8_function.h"
+#include "v8_regexp.h"
 #include "v8_context.h"
 #include "v8_external.h"
 #include "v8_exceptions.h"
@@ -41,6 +42,8 @@ Handle<Value> to_v8(VALUE value)
     return to_v8(rb_v8_number_new2(value));
   case T_STRING:
     return to_v8(rb_v8_string_new2(value));
+  case T_REGEXP:
+    return to_v8(rb_v8_regexp_new2(value));
   case T_ARRAY:
     return to_v8(rb_v8_array_new2(value));
   case T_HASH:
@@ -84,6 +87,8 @@ VALUE to_ruby(Handle<Value> value)
     return to_ruby_without_peer<String>(value, rb_cV8String);
   } else if (value->IsFunction()) {
     return to_ruby_with_peer<Function>(value, rb_cV8Function);
+  } else if (value->IsRegExp()) {
+    return to_ruby_without_peer<RegExp>(value, rb_cV8Regexp);
   } else if (value->IsArray()) {
     return to_ruby_with_peer<Array>(value, rb_cV8Array);
   } else if (value->IsExternal()) {
@@ -110,6 +115,7 @@ OVERLOAD_TO_RUBY_WITH(String);
 OVERLOAD_TO_RUBY_WITH(Integer);
 OVERLOAD_TO_RUBY_WITH(Number);
 OVERLOAD_TO_RUBY_WITH(Function);
+OVERLOAD_TO_RUBY_WITH(RegExp);
 OVERLOAD_TO_RUBY_WITH(Array);
 OVERLOAD_TO_RUBY_WITH(External);
 OVERLOAD_TO_RUBY_WITH(Object);

@@ -66,6 +66,10 @@ describe "Typecasting" do
       obj[:bar].should == 2
       obj[:func].should be_kind_of(V8::Function)
     end
+
+    it "converts regexps properly" do
+      cxt.eval("/foo/i", "<eval>").should == /foo/i
+    end
   end
 
   context "from ruby to js" do
@@ -115,6 +119,13 @@ describe "Typecasting" do
       cxt[:foo] = 1..2
       cxt.eval("foo[0] == 1", "<eval>").should be
       cxt.eval("foo[1] == 2", "<eval>").should be
+    end
+
+    it "converts regexps properly" do
+      cxt[:foo] = /foo(bar)?/i
+      cxt.eval("'Foo'.match(foo);", "<eval>").should be
+      cxt.eval("'FooBAR'.match(foo);", "<eval>").should be
+      cxt.eval("'FoaaoBARaa'.match(foo);", "<eval>").should be_null
     end
   end
 end

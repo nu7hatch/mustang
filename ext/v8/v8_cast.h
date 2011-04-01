@@ -18,6 +18,7 @@ VALUE to_ruby(Handle<String> value);
 VALUE to_ruby(Handle<Integer> value);
 VALUE to_ruby(Handle<Number> value);
 VALUE to_ruby(Handle<Function> value);
+VALUE to_ruby(Handle<RegExp> value);
 VALUE to_ruby(Handle<Array> value);
 VALUE to_ruby(Handle<Object> value);
 VALUE to_ruby(Handle<StackTrace> value);

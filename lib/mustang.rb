@@ -5,6 +5,7 @@ require 'v8/integer'
 require 'v8/number'
 require 'v8/array'
 require 'v8/date'
+require 'v8/regexp'
 
 require 'support/delegated'
 require 'mustang/context'
