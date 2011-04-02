@@ -12,7 +12,7 @@
 #include "v8_regexp.h"
 #include "v8_context.h"
 #include "v8_external.h"
-#include "v8_exceptions.h"
+#include "v8_errors.h"
 #include "v8_macros.h"
 
 using namespace v8;
@@ -53,6 +53,8 @@ Handle<Value> to_v8(VALUE value)
       return to_v8(rb_any_to_ary(value));
     } else if (rb_obj_is_kind_of(value, rb_cTime)) {
       return to_v8(rb_v8_date_new2(value));
+    } else if (rb_obj_is_kind_of(value, rb_cProc)) {
+      return to_v8(rb_v8_function_new2(value));
     } if (rb_obj_is_kind_of(value, rb_cV8Value)) {
       return v8_ref_get<Value>(value);
     } else if (rb_obj_is_kind_of(value, rb_cV8Undefined)) {
@@ -98,16 +100,6 @@ VALUE to_ruby(Handle<Value> value)
   }
 
   return Qnil;
-}
-
-VALUE to_ruby(Handle<StackTrace> value)
-{
-  return to_ruby_no_cast<StackTrace>(value, rb_cV8StackTrace);
-}
-
-VALUE to_ruby(Handle<StackFrame> value)
-{
-  return to_ruby_no_cast<StackFrame>(value, rb_cV8StackFrame);
 }
 
 OVERLOAD_TO_RUBY_WITH(Boolean);

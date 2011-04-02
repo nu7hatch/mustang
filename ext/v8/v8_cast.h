@@ -21,8 +21,6 @@ VALUE to_ruby(Handle<Function> value);
 VALUE to_ruby(Handle<RegExp> value);
 VALUE to_ruby(Handle<Array> value);
 VALUE to_ruby(Handle<Object> value);
-VALUE to_ruby(Handle<StackTrace> value);
-VALUE to_ruby(Handle<StackFrame> value);
 
 VALUE to_ruby(bool value);
 VALUE to_ruby(double value);

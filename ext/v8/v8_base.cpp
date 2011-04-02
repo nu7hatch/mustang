@@ -1,7 +1,7 @@
 #include "v8_ref.h"
 #include "v8_cast.h"
 #include "v8_base.h"
-#include "v8_exceptions.h"
+#include "v8_errors.h"
 #include "v8_macros.h"
 
 using namespace v8;
@@ -24,7 +24,7 @@ VALUE rb_mSingleton = rb_eval_string("require 'singleton'; Singleton");
  */
 static VALUE rb_v8_data_error_p(VALUE self)
 {
-  return rb_obj_is_kind_of(self, rb_eV8Exception);
+  return rb_obj_is_kind_of(self, rb_eV8Error);
 }
 
 /*

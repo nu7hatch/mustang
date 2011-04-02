@@ -19,7 +19,7 @@ module Mustang
     #
     def evaluate(source, locals={}, filename="<eval>")
       res = super(source, filename)
-      errors << res if res.error?
+      errors << res if res.v8? and res.error?
       return res
     end
     alias_method :eval, :evaluate

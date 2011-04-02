@@ -12,7 +12,7 @@
 #include "v8_function.h"
 #include "v8_regexp.h"
 #include "v8_external.h"
-#include "v8_exceptions.h"
+#include "v8_errors.h"
 
 extern "C" void Init_v8() {
   Init_V8();
@@ -33,5 +33,5 @@ extern "C" void Init_v8() {
   Init_V8_Function();
   Init_V8_Regexp();
   Init_V8_External();
-  Init_V8_Exceptions();
+  Init_V8_Errors();
 }

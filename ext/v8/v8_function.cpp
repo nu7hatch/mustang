@@ -2,6 +2,7 @@
 #include "v8_cast.h"
 #include "v8_object.h"
 #include "v8_function.h"
+#include "v8_external.h"
 #include "v8_macros.h"
 
 using namespace v8;
@@ -11,36 +12,49 @@ UNWRAPPER(Function);
 
 /* Typecasting */
 
+static Handle<Value> proc_caller(const Arguments &args)
+{
+  HandleScope scope;
+
+  if (!args.Data().IsEmpty() && args.Data()->IsExternal()) {
+    VALUE proc = (VALUE)External::Cast(*args.Data())->Value();
+    VALUE proc_args[args.Length()];
+      
+    for (int i = 0; i < args.Length(); i++) {
+      proc_args[i] = to_ruby(args[i]);
+    }
+    
+    return to_v8(rb_funcall2(proc, rb_intern("call"), args.Length(), proc_args));
+  }
+
+  return Null();
+}
+
 Handle<Value> to_v8_function(VALUE value)
 {
-  //HandleScope scope;
-  //return scope.Close(Function::New());
-  return Null();
+  HandleScope scope;
+  Handle<FunctionTemplate> func = FunctionTemplate::New(proc_caller, to_v8_external(value));
+  return func->GetFunction();
 }
 
 /* V8::Function methods */
 
-//static VALUE rb_v8_string_new(VALUE klass, VALUE data)
-//{
-//  HandleScope scope;
-//  Handle<Function> func = Function::New()
-//  VALUE str = rb_funcall(data, rb_intern("to_s"), 0);
-//  return v8_ref_new(klass, String::New(StringValuePtr(str)));
-//}
+static VALUE rb_v8_function_new(VALUE klass, VALUE data)
+{
+  HandleScope scope;
+  return v8_ref_new(klass, to_v8_function(data));
+}
 
 static VALUE rb_v8_function_call(int argc, VALUE *args, VALUE self)
 {
   HandleScope scope;
-  Local<Object> this_obj;
+  VALUE recv = rb_iv_get(self, "@receiver");
+
+  Handle<Object> this_obj =
+    NIL_P(recv) ? Context::GetEntered()->Global() :
+    unwrap(recv)->ToObject();
+  
   Handle<Value> fargs[argc];
-
-  VALUE _this_obj = rb_iv_get(self, "@this");
-
-  if (NIL_P(_this_obj)) {
-    this_obj = unwrap(self);
-  } else {
-    this_obj = v8_ref_get<Value>(_this_obj)->ToObject();
-  }
   
   for (int i = 0; i < argc; i++) {
     fargs[i] = to_v8(args[i]);
@@ -49,11 +63,40 @@ static VALUE rb_v8_function_call(int argc, VALUE *args, VALUE self)
   return to_ruby(unwrap(self)->Call(this_obj, argc, fargs));
 }
 
+static VALUE rb_v8_function_get_name(VALUE self)
+{
+  HandleScope scope;
+  return to_ruby(unwrap(self)->GetName());
+}
+
+static VALUE rb_v8_function_set_name(VALUE self, VALUE name)
+{
+  HandleScope scope;
+  unwrap(self)->SetName(String::New(StringValuePtr(name)));
+  return name;
+}
+
+static VALUE rb_v8_function_bind(VALUE self, VALUE recv)
+{
+  return rb_iv_set(self, "@receiver", recv);
+}
+
+/* Public constructors */
+
+VALUE rb_v8_function_new2(VALUE data)
+{
+  return rb_v8_function_new(rb_cV8Function, data);
+}
+
 
 /* V8::Function initializer. */
 void Init_V8_Function()
 {
   rb_cV8Function = rb_define_class_under(rb_mV8, "Function", rb_cV8Object);
-  rb_define_attr(rb_cV8Function, "this", 1, 1);
+  rb_define_singleton_method(rb_cV8Function, "new", RUBY_METHOD_FUNC(rb_v8_function_new), 1);
+  rb_define_method(rb_cV8Function, "bind", RUBY_METHOD_FUNC(rb_v8_function_bind), 1);
   rb_define_method(rb_cV8Function, "call", RUBY_METHOD_FUNC(rb_v8_function_call), -1);
+  rb_define_method(rb_cV8Function, "name", RUBY_METHOD_FUNC(rb_v8_function_get_name), 0);
+  rb_define_method(rb_cV8Function, "name=", RUBY_METHOD_FUNC(rb_v8_function_set_name), 1);
+  rb_define_attr(rb_cV8Function, "receiver", 1, 0);
 }

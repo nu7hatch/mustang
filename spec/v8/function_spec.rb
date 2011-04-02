@@ -5,12 +5,14 @@ describe V8::Function do
   setup_context
 
   it "inherits V8::Object" do
-    pending
-    subject.new(lambda{ "foo" }).should be_kind_of(V8::Object)
+    subject.new(lambda { "foo" }).should be_kind_of(V8::Object)
   end
 
   describe ".new" do
-    it "creates new function pointed to proc/lambda"
+    it "creates new function pointed to proc/lambda" do
+      func = subject.new(lambda {|bar| "foo#{bar}"})
+      func.call("foo").should == "foofoo"
+    end
   end
 
   describe "#call" do
@@ -19,11 +21,18 @@ describe V8::Function do
       func.call(10, 20).should == 30
     end
 
-    context "when different `this` object is assigned" do
+    context "when bound to dirreferent receiver object" do
       it "executes function on it" do
         func = cxt.eval("var f = function(foo) { return this+foo }; f;", "<eval>")
-        func.this = V8::Integer.new(10)
-        func.call(10).should == 20;
+        func.bind(10.to_v8)
+        func.call(10).should == 20
+      end
+    end
+
+    context "when not bound to any receiver" do
+      it "executes function on global object" do
+        func = cxt.eval("var f = function() { return this; }; f;", "<eval>")
+        func.call().should == cxt.global
       end
     end
   end

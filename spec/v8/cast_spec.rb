@@ -109,6 +109,13 @@ describe "Typecasting" do
       cxt.eval("foo[2] == 3", "<eval>").should be
     end
 
+    it "converts procs and lambdas properly" do
+      cxt[:foo] = proc {|foo| "foo#{foo}" }
+      cxt[:bar] = lambda {|foo| "foo#{foo}" }
+      cxt.eval("foo('bar')", "<eval>").should == "foobar"
+      cxt.eval("bar('foo')", "<eval>").should == "foofoo"
+    end
+
     it "converts hashes properly" do
       cxt[:foo] = {:a => 1, :b => 2}
       cxt.eval("foo.a == 1", "<eval>").should be

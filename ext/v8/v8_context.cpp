@@ -1,8 +1,8 @@
 #include "v8_ref.h"
 #include "v8_cast.h"
 #include "v8_context.h"
+#include "v8_errors.h"
 #include "v8_macros.h"
-#include "v8_exceptions.h"
 
 using namespace v8;
 
@@ -106,7 +106,7 @@ static VALUE rb_v8_context_evaluate(VALUE self, VALUE source, VALUE filename)
     }
   }
 
-  return rb_v8_exception_new3(try_catch);
+  return rb_v8_error_new3(try_catch);
 }
 
 /*
