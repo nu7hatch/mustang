@@ -9,6 +9,7 @@ RUBY_EXTERN VALUE rb_eV8Error;
 RUBY_EXTERN VALUE rb_eV8RangeError;
 RUBY_EXTERN VALUE rb_eV8ReferenceError;
 RUBY_EXTERN VALUE rb_eV8StntaxError;
+RUBY_EXTERN VALUE rb_eV8TypeError;
 
 /* API */
 VALUE rb_v8_error_new2(Handle<Value> ex, Handle<Message> msg);

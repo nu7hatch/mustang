@@ -28,6 +28,10 @@ describe V8::Error do
   it "#range_error? returns false" do
     subject.should_not be_range_error
   end
+
+  it "#type_error? returns false" do
+    subject.should_not be_type_error
+  end
   
   it "#error? return true" do
     subject.should be_error
@@ -90,6 +94,11 @@ describe "Returned error" do
   it "is an RangeError when maximum call stack exceeded" do
     cxt.eval("function a() { a() }; a()", "<eval>").should be_range_error
   end
+
+
+  it "is an TypeError when object is not a function" do
+    cxt.eval("a = 'foo'; a()", "<eval>").should be_type_error
+  end
 end
 
 describe V8::ReferenceError do
@@ -122,3 +131,12 @@ describe V8::RangeError do
   end
 end
 
+describe V8::TypeError do
+  it "#type_error? returns true" do
+    subject.should be_type_error
+  end
+
+  it "#error? returns true" do
+    subject.should be_error
+  end
+end

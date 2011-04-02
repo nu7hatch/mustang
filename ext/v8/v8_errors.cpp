@@ -13,6 +13,7 @@ VALUE rb_eV8Error;
 VALUE rb_eV8RangeError;
 VALUE rb_eV8ReferenceError;
 VALUE rb_eV8SyntaxError;
+VALUE rb_eV8TypeError;
 
 /* V8::Error methods */
 
@@ -52,6 +53,18 @@ static VALUE rb_v8_error_reference_error_p(VALUE self)
   return rb_obj_is_kind_of(self, rb_eV8ReferenceError);
 }
 
+/*
+ * call-seq:
+ *   err.type_error?  => true or false
+ *
+ * Returns <code>true</code> when it represents an type error.
+ *
+ */
+static VALUE rb_v8_error_type_error_p(VALUE self)
+{
+  return rb_obj_is_kind_of(self, rb_eV8TypeError);
+}
+
 /* Local helpers */
 
 VALUE rb_v8_error_message(Handle<Object> ex)
@@ -76,6 +89,8 @@ VALUE rb_v8_error_klass(Handle<Object> ex)
       return rb_eV8ReferenceError;
     } else if (strcmp(type, "RangeError") == 0) {
       return rb_eV8RangeError;
+    } else if (strcmp(type, "TypeError") == 0) {
+      return rb_eV8TypeError;
     }
   }
 
@@ -116,6 +131,7 @@ void Init_V8_Errors()
   rb_define_method(rb_eV8Error, "reference_error?", RUBY_METHOD_FUNC(rb_v8_error_reference_error_p), 0);
   rb_define_method(rb_eV8Error, "syntax_error?", RUBY_METHOD_FUNC(rb_v8_error_syntax_error_p), 0);
   rb_define_method(rb_eV8Error, "range_error?", RUBY_METHOD_FUNC(rb_v8_error_range_error_p), 0);
+  rb_define_method(rb_eV8Error, "type_error?", RUBY_METHOD_FUNC(rb_v8_error_type_error_p), 0);
   rb_define_attr(rb_eV8Error, "message", 1, 0);
   rb_define_attr(rb_eV8Error, "line_no", 1, 0);
   rb_define_attr(rb_eV8Error, "source_line", 1, 0);
@@ -127,4 +143,5 @@ void Init_V8_Errors()
   rb_eV8RangeError = rb_define_class_under(rb_mV8, "RangeError", rb_eV8Error);
   rb_eV8ReferenceError = rb_define_class_under(rb_mV8, "ReferenceError", rb_eV8Error);
   rb_eV8SyntaxError = rb_define_class_under(rb_mV8, "SyntaxError", rb_eV8Error);
+  rb_eV8TypeError = rb_define_class_under(rb_mV8, "TypeError", rb_eV8Error);
 }
