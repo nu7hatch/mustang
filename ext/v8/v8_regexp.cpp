@@ -54,7 +54,7 @@ Handle<Value> to_v8_regexp(VALUE value)
  * call-seq:
  *   V8::Regexp.new(rxp)         => new_regexp
  *   V8::Regexp.new(str, flags)  => new_regexp
- 
+ *
  * Returns new V8 regexp reflected from given ruby regexp or source and flags.
  *
  */
@@ -91,7 +91,7 @@ static VALUE rb_v8_regexp_source(VALUE self)
 
 /*
  * call-seq:
- *   rxp.flags  => int
+ *   rxp.options  => int
  *
  * Returns fixnum value of v8 regexp flags.
  *
