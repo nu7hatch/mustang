@@ -95,15 +95,31 @@ describe V8::Value do
   end
 
   describe "#function?" do
-    it "returns true when value is an instance of V8::Function"
-    it "returns false when value is not an instance of V8::Function"
-    it "is aliased with #func?"
+    it "returns true when value is an instance of V8::Function" do
+      V8::Function.new(proc {}).should be_function
+    end
+
+    it "returns false when value is not an instance of V8::Function" do
+      V8::Integer.new(1).should_not be_function
+    end
+
+    it "is aliased with #func?" do
+      V8::Function.new(proc {}).should be_func
+    end
   end
 
   describe "#regexp?" do
-    it "returns true when value is an instance of V8::Regexp"
-    it "returns false when value is not an instance of V8::Regexp"
-    it "is aliased with #regex?"
+    it "returns true when value is an instance of V8::Regexp" do
+      V8::Regexp.new(/foo/).should be_regexp
+    end
+
+    it "returns false when value is not an instance of V8::Regexp" do
+      V8::Integer.new(1).should_not be_regexp
+    end
+
+    it "is aliased with #regex?" do
+      V8::Regexp.new(/foo/).should be_regex
+    end
   end
 
   describe "#date?" do

@@ -58,9 +58,8 @@ describe V8::Regexp do
 
   describe "an instance" do
     it "is delegated properly" do
-      pending
-      rxp = subject.new(3)
-      rxp.delegate.should == int.to_i
+      rxp = subject.new(/foo/)
+      rxp.delegate.should == rxp.to_regexp
     end
   end
 end
