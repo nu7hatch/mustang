@@ -3,6 +3,7 @@
 #include "v8_object.h"
 #include "v8_function.h"
 #include "v8_external.h"
+#include "v8_errors.h"
 #include "v8_macros.h"
 
 using namespace v8;
@@ -18,13 +19,18 @@ static Handle<Value> proc_caller(const Arguments &args)
 
   if (!args.Data().IsEmpty() && args.Data()->IsExternal()) {
     VALUE proc = (VALUE)External::Cast(*args.Data())->Value();
-    VALUE proc_args[args.Length()];
-      
-    for (int i = 0; i < args.Length(); i++) {
-      proc_args[i] = to_ruby(args[i]);
-    }
+    VALUE proc_args = rb_ary_new();
+    int proc_arity = rb_proc_arity(proc);
     
-    return to_v8(rb_funcall2(proc, rb_intern("call"), args.Length(), proc_args));
+    if (proc_arity < 0 || proc_arity == args.Length()) {
+      for (int i = 0; i < args.Length(); i++) {
+	rb_ary_push(proc_args, to_ruby(args[i]));
+      }
+   
+      return to_v8(rb_proc_call(proc, proc_args));
+    } else {
+      ThrowException(Exception::Error(String::New("wrong number of arguments")));
+    }
   }
 
   return Null();
@@ -48,6 +54,8 @@ static VALUE rb_v8_function_new(VALUE klass, VALUE data)
 static VALUE rb_v8_function_call(int argc, VALUE *args, VALUE self)
 {
   HandleScope scope;
+  TryCatch try_catch;
+  
   VALUE recv = rb_iv_get(self, "@receiver");
 
   Handle<Object> this_obj =
@@ -60,7 +68,13 @@ static VALUE rb_v8_function_call(int argc, VALUE *args, VALUE self)
     fargs[i] = to_v8(args[i]);
   }
   
-  return to_ruby(unwrap(self)->Call(this_obj, argc, fargs));
+  Handle<Value> result = unwrap(self)->Call(this_obj, argc, fargs);
+
+  if (try_catch.HasCaught()) {
+    return rb_v8_error_new3(try_catch);
+  } else {
+    return to_ruby(result);
+  }
 }
 
 static VALUE rb_v8_function_get_name(VALUE self)

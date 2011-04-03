@@ -35,5 +35,23 @@ describe V8::Function do
         func.call().should == cxt.global
       end
     end
+
+    context "when function cause errors" do
+      it "returns an caught error object" do
+        func = cxt.eval("var f = function() { return 'foo'+notexists; }; f;", "<eval>")
+        func.call().should be_error
+      end
+    end
+
+    context "when wrong numbers of arguments given" do
+      it "returns proper error" do
+        func = V8::Function.new(lambda {|arg| return arg })
+        func.call().should be_error
+        func.call(1).should == 1
+        func = V8::Function.new(lambda {|*args| return args.size })
+        func.call().should == 0
+        func.call(1,2,3).should == 3
+      end
+    end
   end
 end
