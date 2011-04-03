@@ -12,15 +12,16 @@ using namespace v8;
  *
  */
 struct v8_ref {
-  v8_ref(Handle<void> object);
+  v8_ref(Handle<void> object, VALUE orig=Qnil);
   virtual ~v8_ref();
   void set(const char *name, VALUE ref);
   Persistent<void> handle;
   VALUE references;
+  VALUE origin;
 };
 
 /* API */
-VALUE v8_ref_new(VALUE obj, Handle<void> handle);
+VALUE v8_ref_new(VALUE obj, Handle<void> handle, VALUE orig=Qnil);
 void v8_ref_set(VALUE obj, const char *name, VALUE ref);
 
 /*

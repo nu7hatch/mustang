@@ -22,6 +22,19 @@ describe V8::Function do
         func.call("foo").should == "foofoo"
       end
     end
+
+    context "when object method given" do
+      it "creates new function pointed to it" do
+        class Foo
+          def initialize(foo); @foo = foo; end
+          def bar(arg); return "foo#{arg}#{@foo}"; end
+        end
+
+        foo = Foo.new('bar')
+        func = subject.new(foo.method(:bar))
+        func.call("foo").should =="foofoobar"
+      end
+    end
   end
 
   describe "#call" do
@@ -110,6 +123,23 @@ describe V8::Function do
       it "returns nil" do
         func = cxt.eval("var f = function(){}; f", "<eval>")
         func.origin.should_not be
+      end
+    end
+  end
+
+  describe "#to_proc" do
+    context "when function has been created from ruby proc/lambda/method" do
+      it "returns it" do
+        proc = Proc.new {}
+        func = V8::Function.new(proc)
+        func.to_proc.should == proc
+      end
+    end
+
+    context "when function has been taken from javascript" do
+      it "returns nil" do
+        func = cxt.eval("var f = function(){}; f", "<eval>")
+        func.to_proc.should_not be
       end
     end
   end

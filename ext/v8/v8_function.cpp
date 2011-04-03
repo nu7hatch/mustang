@@ -19,15 +19,19 @@ static Handle<Value> proc_caller(const Arguments &args)
 
   if (!args.Data().IsEmpty() && args.Data()->IsExternal()) {
     VALUE proc = (VALUE)External::Cast(*args.Data())->Value();
-    VALUE proc_args = rb_ary_new();
-    int proc_arity = rb_proc_arity(proc);
+    VALUE proc_args[args.Length()];
+
+    // We have to invoke `arity` on given proc instead of calling rb_proc_arity,
+    // because we can have instance of Method instead of Proc...
+    int proc_arity = FIX2INT(rb_funcall2(proc, rb_intern("arity"), 0, NULL));
     
     if (proc_arity < 0 || proc_arity == args.Length()) {
       for (int i = 0; i < args.Length(); i++) {
-	rb_ary_push(proc_args, to_ruby(args[i]));
+	proc_args[i] = to_ruby(args[i]);
       }
-   
-      return to_v8(rb_proc_call(proc, proc_args));
+
+      // Again, we have to invoke `call` method like this instead of rb_proc_call...
+      return to_v8(rb_funcall2(proc, rb_intern("call"), args.Length(), proc_args));
     } else {
       ThrowException(Exception::Error(String::New("wrong number of arguments")));
     }
@@ -69,10 +73,10 @@ static VALUE rb_v8_function_new(int argc, VALUE *argv, VALUE klass)
       return Qnil;
     }
   }
-  
-  VALUE func = v8_ref_new(klass, to_v8_function(orig));
+
+  VALUE func = v8_ref_new(klass, to_v8_function(orig), orig);
   rb_iv_set(func, "@origin", orig);
-  
+
   return func;
 }
 

@@ -21,9 +21,9 @@ void gc_v8_object_free(v8_ref *r)
  *   v8_ref_new(rb_cV8String, String::Cast(*value));
  *
  */
-VALUE v8_ref_new(VALUE klass, Handle<void> handle)
+VALUE v8_ref_new(VALUE klass, Handle<void> handle, VALUE orig/* = Qnil */)
 {
-  v8_ref *r = new v8_ref(handle);
+  v8_ref *r = new v8_ref(handle, orig);
   return Data_Wrap_Struct(klass, gc_v8_object_mark, gc_v8_object_free, r);
 }
 
@@ -40,14 +40,23 @@ void v8_ref_set(VALUE obj, const char *name, VALUE ref)
 
 /* The v8_ref struct methods. */
 
-v8_ref::v8_ref(Handle<void> object)
+v8_ref::v8_ref(Handle<void> object, VALUE orig/* = Qnil */)
 {
   handle = Persistent<void>::New(object);
   references = rb_hash_new();
+
+  if (!NIL_P(orig)) {
+    origin = orig;
+    rb_gc_register_address(&origin);
+  }
 }
 
 v8_ref::~v8_ref()
 {
+  if (!NIL_P(origin)) {
+    rb_gc_unregister_address(&origin);
+  }
+  
   handle.Dispose();
 }
 

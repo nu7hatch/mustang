@@ -6,6 +6,7 @@ require 'v8/number'
 require 'v8/array'
 require 'v8/date'
 require 'v8/regexp'
+require 'v8/function'
 require 'v8/error'
 
 require 'support/delegated'
