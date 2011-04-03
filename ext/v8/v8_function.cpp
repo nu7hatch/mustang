@@ -45,12 +45,46 @@ Handle<Value> to_v8_function(VALUE value)
 
 /* V8::Function methods */
 
-static VALUE rb_v8_function_new(VALUE klass, VALUE data)
+/*
+ * call-seq:
+ *   V8::Function.new(proc)    => new_func
+ *   V8::Function.new { ... }  => new_func
+ *
+ * When block given then creates new function based on it, otherwise
+ * creates function based on passed parameter (proc/lambda/method).
+ *
+ */
+static VALUE rb_v8_function_new(int argc, VALUE *argv, VALUE klass)
 {
   HandleScope scope;
-  return v8_ref_new(klass, to_v8_function(data));
+  VALUE orig;
+  
+  if (rb_block_given_p()) {
+    orig = rb_block_proc();
+  } else {
+    if (argc == 1) {
+      orig = argv[0];
+    } else {
+      rb_raise(rb_eArgError, "wrong number of arguments (%d for 1)", argc);
+      return Qnil;
+    }
+  }
+  
+  VALUE func = v8_ref_new(klass, to_v8_function(orig));
+  rb_iv_set(func, "@origin", orig);
+  
+  return func;
 }
 
+/*
+ * call-seq:
+ *   func.call(*args)  => result 
+ *
+ * Executes function with given arguments. If function is bound to any receiver
+ * then is executed within its context. When function code is broken then proper
+ * JavaScript error will be returned. 
+ *
+ */
 static VALUE rb_v8_function_call(int argc, VALUE *args, VALUE self)
 {
   HandleScope scope;
@@ -77,12 +111,26 @@ static VALUE rb_v8_function_call(int argc, VALUE *args, VALUE self)
   }
 }
 
+/*
+ * call-seq:
+ *   func.name  => str
+ *
+ * Returns function's internal name.
+ *
+ */
 static VALUE rb_v8_function_get_name(VALUE self)
 {
   HandleScope scope;
   return to_ruby(unwrap(self)->GetName());
 }
 
+/*
+ * call-seq:
+ *   func.name = str  => str
+ *
+ * Sets function's internal name.
+ *
+ */
 static VALUE rb_v8_function_set_name(VALUE self, VALUE name)
 {
   HandleScope scope;
@@ -90,16 +138,24 @@ static VALUE rb_v8_function_set_name(VALUE self, VALUE name)
   return name;
 }
 
+/*
+ * call-seq:
+ *   func.bind(obj)  => obj
+ *
+ * Binds given object as function's receiver. 
+ *
+ */
 static VALUE rb_v8_function_bind(VALUE self, VALUE recv)
 {
   return rb_iv_set(self, "@receiver", recv);
 }
 
+
 /* Public constructors */
 
 VALUE rb_v8_function_new2(VALUE data)
 {
-  return rb_v8_function_new(rb_cV8Function, data);
+  return rb_v8_function_new(1, &data, rb_cV8Function);
 }
 
 
@@ -107,10 +163,11 @@ VALUE rb_v8_function_new2(VALUE data)
 void Init_V8_Function()
 {
   rb_cV8Function = rb_define_class_under(rb_mV8, "Function", rb_cV8Object);
-  rb_define_singleton_method(rb_cV8Function, "new", RUBY_METHOD_FUNC(rb_v8_function_new), 1);
+  rb_define_singleton_method(rb_cV8Function, "new", RUBY_METHOD_FUNC(rb_v8_function_new), -1);
   rb_define_method(rb_cV8Function, "bind", RUBY_METHOD_FUNC(rb_v8_function_bind), 1);
   rb_define_method(rb_cV8Function, "call", RUBY_METHOD_FUNC(rb_v8_function_call), -1);
   rb_define_method(rb_cV8Function, "name", RUBY_METHOD_FUNC(rb_v8_function_get_name), 0);
   rb_define_method(rb_cV8Function, "name=", RUBY_METHOD_FUNC(rb_v8_function_set_name), 1);
   rb_define_attr(rb_cV8Function, "receiver", 1, 0);
+  rb_define_attr(rb_cV8Function, "origin", 1, 0);
 }

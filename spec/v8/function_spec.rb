@@ -9,9 +9,18 @@ describe V8::Function do
   end
 
   describe ".new" do
-    it "creates new function pointed to proc/lambda" do
-      func = subject.new(lambda {|bar| "foo#{bar}"})
-      func.call("foo").should == "foofoo"
+    context "when given proc/lambda" do
+      it "creates new function pointed to it" do
+        func = subject.new(lambda {|bar| "foo#{bar}"})
+        func.call("foo").should == "foofoo"
+      end
+    end
+
+    context "when block given" do
+      it "creates new function pointed to it" do
+        func = subject.new {|bar| "foo#{bar}" }
+        func.call("foo").should == "foofoo"
+      end
     end
   end
 
@@ -51,6 +60,56 @@ describe V8::Function do
         func = V8::Function.new(lambda {|*args| return args.size })
         func.call().should == 0
         func.call(1,2,3).should == 3
+      end
+    end
+  end
+
+  describe "#bind" do
+    it "binds function with given object" do
+      func = V8::Function.new(lambda{})
+      func.bind('foo')
+      func.receiver.should == 'foo'
+    end
+  end
+
+  describe "#receiver" do
+    context "when no object bound to function" do
+      it "returns nil" do
+        func = V8::Function.new(lambda{})
+        func.receiver.should_not be
+      end
+    end
+
+    context "when object bound to function" do
+      it "returns it" do
+        func = V8::Function.new(lambda{})
+        func.bind(1)
+        func.receiver.should == 1
+      end
+    end
+  end
+
+  describe "#name= and #name" do
+    it "sets and gets function's unique name" do
+      func = V8::Function.new(lambda{})
+      func.name = 'foo'
+      func.name.should == 'foo'
+    end
+  end
+
+  describe "#origin" do
+    context "when function has been created from ruby proc/lambda/method" do
+      it "returns it" do
+        proc = Proc.new {}
+        func = V8::Function.new(proc)
+        func.origin.should == proc
+      end
+    end
+
+    context "when function has been taken from javascript" do
+      it "returns nil" do
+        func = cxt.eval("var f = function(){}; f", "<eval>")
+        func.origin.should_not be
       end
     end
   end
