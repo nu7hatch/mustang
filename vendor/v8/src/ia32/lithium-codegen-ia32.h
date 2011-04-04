@@ -56,7 +56,7 @@ class LCodeGen BASE_EMBEDDED {
         deoptimizations_(4),
         deoptimization_literals_(8),
         inlined_function_count_(0),
-        scope_(chunk->graph()->info()->scope()),
+        scope_(info->scope()),
         status_(UNUSED),
         deferred_(8),
         osr_pc_offset_(-1),
@@ -67,6 +67,10 @@ class LCodeGen BASE_EMBEDDED {
 
   // Simple accessors.
   MacroAssembler* masm() const { return masm_; }
+  CompilationInfo* info() const { return info_; }
+  Isolate* isolate() const { return info_->isolate(); }
+  Factory* factory() const { return isolate()->factory(); }
+  Heap* heap() const { return isolate()->heap(); }
 
   // Support for converting LOperands to assembler types.
   Operand ToOperand(LOperand* op) const;
@@ -94,6 +98,7 @@ class LCodeGen BASE_EMBEDDED {
   void DoDeferredMathAbsTaggedHeapNumber(LUnaryMathOperation* instr);
   void DoDeferredStackCheck(LGoto* instr);
   void DoDeferredStringCharCodeAt(LStringCharCodeAt* instr);
+  void DoDeferredStringCharFromCode(LStringCharFromCode* instr);
   void DoDeferredLInstanceOfKnownGlobal(LInstanceOfKnownGlobal* instr,
                                         Label* map_check);
 
@@ -124,7 +129,7 @@ class LCodeGen BASE_EMBEDDED {
   bool is_aborted() const { return status_ == ABORTED; }
 
   int strict_mode_flag() const {
-    return info_->is_strict() ? kStrictMode : kNonStrictMode;
+    return info()->is_strict() ? kStrictMode : kNonStrictMode;
   }
 
   LChunk* chunk() const { return chunk_; }
@@ -161,11 +166,11 @@ class LCodeGen BASE_EMBEDDED {
 
   void CallCode(Handle<Code> code, RelocInfo::Mode mode, LInstruction* instr,
                 bool adjusted = true);
-  void CallRuntime(Runtime::Function* fun, int argc, LInstruction* instr,
+  void CallRuntime(const Runtime::Function* fun, int argc, LInstruction* instr,
                    bool adjusted = true);
   void CallRuntime(Runtime::FunctionId id, int argc, LInstruction* instr,
                    bool adjusted = true) {
-    Runtime::Function* function = Runtime::FunctionForId(id);
+    const Runtime::Function* function = Runtime::FunctionForId(id);
     CallRuntime(function, argc, instr, adjusted);
   }
 
@@ -241,6 +246,10 @@ class LCodeGen BASE_EMBEDDED {
   // Caller should branch on equal condition.
   void EmitIsConstructCall(Register temp);
 
+  void EmitLoadField(Register result,
+                     Register object,
+                     Handle<Map> type,
+                     Handle<String> name);
 
   LChunk* const chunk_;
   MacroAssembler* const masm_;

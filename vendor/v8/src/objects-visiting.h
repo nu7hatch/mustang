@@ -141,13 +141,22 @@ class StaticVisitorBase : public AllStatic {
 template<typename Callback>
 class VisitorDispatchTable {
  public:
+  void CopyFrom(VisitorDispatchTable* other) {
+    // We are not using memcpy to guarantee that during update
+    // every element of callbacks_ array will remain correct
+    // pointer (memcpy might be implemented as a byte copying loop).
+    for (int i = 0; i < StaticVisitorBase::kVisitorIdCount; i++) {
+      NoBarrier_Store(&callbacks_[i], other->callbacks_[i]);
+    }
+  }
+
   inline Callback GetVisitor(Map* map) {
-    return callbacks_[map->visitor_id()];
+    return reinterpret_cast<Callback>(callbacks_[map->visitor_id()]);
   }
 
   void Register(StaticVisitorBase::VisitorId id, Callback callback) {
     ASSERT(id < StaticVisitorBase::kVisitorIdCount);  // id is unsigned.
-    callbacks_[id] = callback;
+    callbacks_[id] = reinterpret_cast<AtomicWord>(callback);
   }
 
   template<typename Visitor,
@@ -179,21 +188,22 @@ class VisitorDispatchTable {
   }
 
  private:
-  Callback callbacks_[StaticVisitorBase::kVisitorIdCount];
+  AtomicWord callbacks_[StaticVisitorBase::kVisitorIdCount];
 };
 
 
 template<typename StaticVisitor>
 class BodyVisitorBase : public AllStatic {
  public:
-  INLINE(static void IteratePointers(HeapObject* object,
+  INLINE(static void IteratePointers(Heap* heap,
+                                     HeapObject* object,
                                      int start_offset,
                                      int end_offset)) {
     Object** start_slot = reinterpret_cast<Object**>(object->address() +
                                                      start_offset);
     Object** end_slot = reinterpret_cast<Object**>(object->address() +
                                                    end_offset);
-    StaticVisitor::VisitPointers(start_slot, end_slot);
+    StaticVisitor::VisitPointers(heap, start_slot, end_slot);
   }
 };
 
@@ -204,7 +214,10 @@ class FlexibleBodyVisitor : public BodyVisitorBase<StaticVisitor> {
   static inline ReturnType Visit(Map* map, HeapObject* object) {
     int object_size = BodyDescriptor::SizeOf(map, object);
     BodyVisitorBase<StaticVisitor>::IteratePointers(
-        object, BodyDescriptor::kStartOffset, object_size);
+        map->heap(),
+        object,
+        BodyDescriptor::kStartOffset,
+        object_size);
     return static_cast<ReturnType>(object_size);
   }
 
@@ -212,7 +225,10 @@ class FlexibleBodyVisitor : public BodyVisitorBase<StaticVisitor> {
   static inline ReturnType VisitSpecialized(Map* map, HeapObject* object) {
     ASSERT(BodyDescriptor::SizeOf(map, object) == object_size);
     BodyVisitorBase<StaticVisitor>::IteratePointers(
-        object, BodyDescriptor::kStartOffset, object_size);
+        map->heap(),
+        object,
+        BodyDescriptor::kStartOffset,
+        object_size);
     return static_cast<ReturnType>(object_size);
   }
 };
@@ -223,7 +239,10 @@ class FixedBodyVisitor : public BodyVisitorBase<StaticVisitor> {
  public:
   static inline ReturnType Visit(Map* map, HeapObject* object) {
     BodyVisitorBase<StaticVisitor>::IteratePointers(
-        object, BodyDescriptor::kStartOffset, BodyDescriptor::kEndOffset);
+        map->heap(),
+        object,
+        BodyDescriptor::kStartOffset,
+        BodyDescriptor::kEndOffset);
     return static_cast<ReturnType>(BodyDescriptor::kSize);
   }
 };
@@ -299,8 +318,8 @@ class StaticNewSpaceVisitor : public StaticVisitorBase {
     return table_.GetVisitor(map)(map, obj);
   }
 
-  static inline void VisitPointers(Object** start, Object** end) {
-    for (Object** p = start; p < end; p++) StaticVisitor::VisitPointer(p);
+  static inline void VisitPointers(Heap* heap, Object** start, Object** end) {
+    for (Object** p = start; p < end; p++) StaticVisitor::VisitPointer(heap, p);
   }
 
  private:
@@ -372,7 +391,7 @@ void Code::CodeIterateBody(ObjectVisitor* v) {
 
 
 template<typename StaticVisitor>
-void Code::CodeIterateBody() {
+void Code::CodeIterateBody(Heap* heap) {
   int mode_mask = RelocInfo::kCodeTargetMask |
                   RelocInfo::ModeMask(RelocInfo::EMBEDDED_OBJECT) |
                   RelocInfo::ModeMask(RelocInfo::GLOBAL_PROPERTY_CELL) |
@@ -386,12 +405,14 @@ void Code::CodeIterateBody() {
   RelocIterator it(this, mode_mask);
 
   StaticVisitor::VisitPointer(
+      heap,
       reinterpret_cast<Object**>(this->address() + kRelocationInfoOffset));
   StaticVisitor::VisitPointer(
+      heap,
       reinterpret_cast<Object**>(this->address() + kDeoptimizationDataOffset));
 
   for (; !it.done(); it.next()) {
-    it.rinfo()->template Visit<StaticVisitor>();
+    it.rinfo()->template Visit<StaticVisitor>(heap);
   }
 }
 

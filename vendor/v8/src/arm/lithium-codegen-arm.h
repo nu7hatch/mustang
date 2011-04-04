@@ -53,7 +53,7 @@ class LCodeGen BASE_EMBEDDED {
         deoptimizations_(4),
         deoptimization_literals_(8),
         inlined_function_count_(0),
-        scope_(chunk->graph()->info()->scope()),
+        scope_(info->scope()),
         status_(UNUSED),
         deferred_(8),
         osr_pc_offset_(-1),
@@ -64,6 +64,10 @@ class LCodeGen BASE_EMBEDDED {
 
   // Simple accessors.
   MacroAssembler* masm() const { return masm_; }
+  CompilationInfo* info() const { return info_; }
+  Isolate* isolate() const { return info_->isolate(); }
+  Factory* factory() const { return isolate()->factory(); }
+  Heap* heap() const { return isolate()->heap(); }
 
   // Support for converting LOperands to assembler types.
   // LOperand must be a register.
@@ -104,6 +108,7 @@ class LCodeGen BASE_EMBEDDED {
   void DoDeferredMathAbsTaggedHeapNumber(LUnaryMathOperation* instr);
   void DoDeferredStackCheck(LGoto* instr);
   void DoDeferredStringCharCodeAt(LStringCharCodeAt* instr);
+  void DoDeferredStringCharFromCode(LStringCharFromCode* instr);
   void DoDeferredLInstanceOfKnownGlobal(LInstanceOfKnownGlobal* instr,
                                         Label* map_check);
 
@@ -132,7 +137,7 @@ class LCodeGen BASE_EMBEDDED {
   bool is_aborted() const { return status_ == ABORTED; }
 
   int strict_mode_flag() const {
-    return info_->is_strict() ? kStrictMode : kNonStrictMode;
+    return info()->is_strict() ? kStrictMode : kNonStrictMode;
   }
 
   LChunk* chunk() const { return chunk_; }
@@ -170,13 +175,13 @@ class LCodeGen BASE_EMBEDDED {
   void CallCode(Handle<Code> code,
                 RelocInfo::Mode mode,
                 LInstruction* instr);
-  void CallRuntime(Runtime::Function* function,
+  void CallRuntime(const Runtime::Function* function,
                    int num_arguments,
                    LInstruction* instr);
   void CallRuntime(Runtime::FunctionId id,
                    int num_arguments,
                    LInstruction* instr) {
-    Runtime::Function* function = Runtime::FunctionForId(id);
+    const Runtime::Function* function = Runtime::FunctionForId(id);
     CallRuntime(function, num_arguments, instr);
   }
 
@@ -206,14 +211,13 @@ class LCodeGen BASE_EMBEDDED {
   // Specific math operations - used from DoUnaryMathOperation.
   void EmitIntegerMathAbs(LUnaryMathOperation* instr);
   void DoMathAbs(LUnaryMathOperation* instr);
-  void EmitVFPTruncate(VFPRoundingMode rounding_mode,
-                       SwVfpRegister result,
-                       DwVfpRegister double_input,
-                       Register scratch1,
-                       Register scratch2);
   void DoMathFloor(LUnaryMathOperation* instr);
   void DoMathRound(LUnaryMathOperation* instr);
   void DoMathSqrt(LUnaryMathOperation* instr);
+  void DoMathPowHalf(LUnaryMathOperation* instr);
+  void DoMathLog(LUnaryMathOperation* instr);
+  void DoMathCos(LUnaryMathOperation* instr);
+  void DoMathSin(LUnaryMathOperation* instr);
 
   // Support for recording safepoint and position information.
   void RecordSafepoint(LPointerMap* pointers,
@@ -229,6 +233,9 @@ class LCodeGen BASE_EMBEDDED {
                                               int arguments,
                                               int deoptimization_index);
   void RecordPosition(int position);
+  int LastSafepointEnd() {
+    return static_cast<int>(safepoints_.GetPcAfterGap());
+  }
 
   static Condition TokenToCondition(Token::Value op, bool is_unsigned);
   void EmitGoto(int block, LDeferredCode* deferred_stack_check = NULL);
@@ -256,6 +263,11 @@ class LCodeGen BASE_EMBEDDED {
   // Emits optimized code for %_IsConstructCall().
   // Caller should branch on equal condition.
   void EmitIsConstructCall(Register temp1, Register temp2);
+
+  void EmitLoadField(Register result,
+                     Register object,
+                     Handle<Map> type,
+                     Handle<String> name);
 
   LChunk* const chunk_;
   MacroAssembler* const masm_;

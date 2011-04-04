@@ -25,6 +25,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#include "v8.h"
 #include "lithium-allocator-inl.h"
 
 #include "hydrogen.h"
@@ -36,6 +37,8 @@
 #include "x64/lithium-x64.h"
 #elif V8_TARGET_ARCH_ARM
 #include "arm/lithium-arm.h"
+#elif V8_TARGET_ARCH_MIPS
+#include "mips/lithium-mips.h"
 #else
 #error "Unknown architecture."
 #endif
@@ -44,13 +47,18 @@ namespace v8 {
 namespace internal {
 
 
-#define DEFINE_OPERAND_CACHE(name, type)            \
-  name name::cache[name::kNumCachedOperands];       \
-  void name::SetupCache() {                         \
-    for (int i = 0; i < kNumCachedOperands; i++) {  \
-      cache[i].ConvertTo(type, i);                  \
-    }                                               \
-  }
+#define DEFINE_OPERAND_CACHE(name, type)                      \
+  name name::cache[name::kNumCachedOperands];                 \
+  void name::SetupCache() {                                   \
+    for (int i = 0; i < kNumCachedOperands; i++) {            \
+      cache[i].ConvertTo(type, i);                            \
+    }                                                         \
+  }                                                           \
+  static bool name##_initialize() {                           \
+    name::SetupCache();                                       \
+    return true;                                              \
+  }                                                           \
+  static bool name##_cache_initialized = name##_initialize();
 
 DEFINE_OPERAND_CACHE(LConstantOperand, CONSTANT_OPERAND)
 DEFINE_OPERAND_CACHE(LStackSlot,       STACK_SLOT)
@@ -525,6 +533,24 @@ LifetimePosition LiveRange::FirstIntersection(LiveRange* other) {
 }
 
 
+LAllocator::LAllocator(int num_values, HGraph* graph)
+    : chunk_(NULL),
+      live_in_sets_(graph->blocks()->length()),
+      live_ranges_(num_values * 2),
+      fixed_live_ranges_(NULL),
+      fixed_double_live_ranges_(NULL),
+      unhandled_live_ranges_(num_values * 2),
+      active_live_ranges_(8),
+      inactive_live_ranges_(8),
+      reusable_slots_(8),
+      next_virtual_register_(num_values),
+      first_artificial_register_(num_values),
+      mode_(NONE),
+      num_registers_(-1),
+      graph_(graph),
+      has_osr_entry_(false) {}
+
+
 void LAllocator::InitializeLivenessAnalysis() {
   // Initialize the live_in sets for each block to NULL.
   int block_count = graph_->blocks()->length();
@@ -618,11 +644,7 @@ LOperand* LAllocator::AllocateFixed(LUnallocated* operand,
 
 
 LiveRange* LAllocator::FixedLiveRangeFor(int index) {
-  if (index >= fixed_live_ranges_.length()) {
-    fixed_live_ranges_.AddBlock(NULL,
-                                index - fixed_live_ranges_.length() + 1);
-  }
-
+  ASSERT(index < Register::kNumAllocatableRegisters);
   LiveRange* result = fixed_live_ranges_[index];
   if (result == NULL) {
     result = new LiveRange(FixedLiveRangeID(index));
@@ -635,11 +657,7 @@ LiveRange* LAllocator::FixedLiveRangeFor(int index) {
 
 
 LiveRange* LAllocator::FixedDoubleLiveRangeFor(int index) {
-  if (index >= fixed_double_live_ranges_.length()) {
-    fixed_double_live_ranges_.AddBlock(NULL,
-                                index - fixed_double_live_ranges_.length() + 1);
-  }
-
+  ASSERT(index < DoubleRegister::kNumAllocatableRegisters);
   LiveRange* result = fixed_double_live_ranges_[index];
   if (result == NULL) {
     result = new LiveRange(FixedDoubleLiveRangeID(index));
@@ -649,6 +667,7 @@ LiveRange* LAllocator::FixedDoubleLiveRangeFor(int index) {
   }
   return result;
 }
+
 
 LiveRange* LAllocator::LiveRangeFor(int index) {
   if (index >= live_ranges_.length()) {
@@ -1274,7 +1293,7 @@ void LAllocator::BuildLiveRanges() {
         found = true;
         int operand_index = iterator.Current();
         PrintF("Function: %s\n",
-               *graph_->info()->function()->debug_name()->ToCString());
+               *chunk_->info()->function()->debug_name()->ToCString());
         PrintF("Value %d used before first definition!\n", operand_index);
         LiveRange* range = LiveRangeFor(operand_index);
         PrintF("First use is at %d\n", range->first_pos()->pos().Value());
@@ -1436,7 +1455,7 @@ void LAllocator::AllocateDoubleRegisters() {
 
 void LAllocator::AllocateRegisters() {
   ASSERT(mode_ != NONE);
-  reusable_slots_.Clear();
+  ASSERT(unhandled_live_ranges_.is_empty());
 
   for (int i = 0; i < live_ranges_.length(); ++i) {
     if (live_ranges_[i] != NULL) {
@@ -1448,6 +1467,7 @@ void LAllocator::AllocateRegisters() {
   SortUnhandled();
   ASSERT(UnhandledIsSorted());
 
+  ASSERT(reusable_slots_.is_empty());
   ASSERT(active_live_ranges_.is_empty());
   ASSERT(inactive_live_ranges_.is_empty());
 
@@ -1532,17 +1552,9 @@ void LAllocator::AllocateRegisters() {
     }
   }
 
-  active_live_ranges_.Clear();
-  inactive_live_ranges_.Clear();
-}
-
-
-void LAllocator::Setup() {
-  LConstantOperand::SetupCache();
-  LStackSlot::SetupCache();
-  LDoubleStackSlot::SetupCache();
-  LRegister::SetupCache();
-  LDoubleRegister::SetupCache();
+  reusable_slots_.Rewind(0);
+  active_live_ranges_.Rewind(0);
+  inactive_live_ranges_.Rewind(0);
 }
 
 

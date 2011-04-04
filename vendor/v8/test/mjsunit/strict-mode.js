@@ -280,6 +280,19 @@ CheckStrictMode("function strict() { print(--arguments); }", SyntaxError);
 CheckStrictMode("function strict() { var x = --eval; }", SyntaxError);
 CheckStrictMode("function strict() { var x = --arguments; }", SyntaxError);
 
+// Use of const in strict mode is disallowed in anticipation of ES Harmony.
+CheckStrictMode("const x = 0;", SyntaxError);
+CheckStrictMode("for (const x = 0; false;) {}", SyntaxError);
+CheckStrictMode("function strict() { const x = 0; }", SyntaxError);
+
+// Strict mode only allows functions in SourceElements
+CheckStrictMode("if (true) { function invalid() {} }", SyntaxError);
+CheckStrictMode("for (;false;) { function invalid() {} }", SyntaxError);
+CheckStrictMode("{ function invalid() {} }", SyntaxError);
+CheckStrictMode("try { function invalid() {} } catch(e) {}", SyntaxError);
+CheckStrictMode("try { } catch(e) { function invalid() {} }", SyntaxError);
+CheckStrictMode("function outer() {{ function invalid() {} }}", SyntaxError);
+
 // Delete of an unqualified identifier
 CheckStrictMode("delete unqualified;", SyntaxError);
 CheckStrictMode("function strict() { delete unqualified; }", SyntaxError);
@@ -698,5 +711,427 @@ repeat(10, function() { testAssignToUndefined(false); });
     cleanup(String);
     cleanup(Number);
     cleanup(Boolean);
+  }
+})();
+
+
+(function ObjectEnvironment() {
+  var o = {};
+  Object.defineProperty(o, "foo", { value: "FOO", writable: false });
+  assertThrows(
+    function () {
+      with (o) {
+        (function() {
+          "use strict";
+          foo = "Hello";
+        })();
+      }
+    },
+    TypeError);
+})();
+
+
+(function TestSetPropertyWithoutSetter() {
+  var o = { get foo() { return "Yey"; } };
+  assertThrows(
+    function broken() {
+      "use strict";
+      o.foo = (0xBADBAD00 >> 1);
+    },
+    TypeError);
+})();
+
+
+(function TestSetPropertyNonConfigurable() {
+  var frozen = Object.freeze({});
+  var sealed = Object.seal({});
+
+  function strict(o) {
+    "use strict";
+    o.property = "value";
+  }
+
+  assertThrows(function() { strict(frozen); }, TypeError);
+  assertThrows(function() { strict(sealed); }, TypeError);
+})();
+
+
+(function TestAssignmentToReadOnlyProperty() {
+  "use strict";
+
+  var o = {};
+  Object.defineProperty(o, "property", { value: 7 });
+
+  assertThrows(function() { o.property = "new value"; }, TypeError);
+  assertThrows(function() { o.property += 10; }, TypeError);
+  assertThrows(function() { o.property -= 10; }, TypeError);
+  assertThrows(function() { o.property *= 10; }, TypeError);
+  assertThrows(function() { o.property /= 10; }, TypeError);
+  assertThrows(function() { o.property++; }, TypeError);
+  assertThrows(function() { o.property--; }, TypeError);
+  assertThrows(function() { ++o.property; }, TypeError);
+  assertThrows(function() { --o.property; }, TypeError);
+
+  var name = "prop" + "erty"; // to avoid symbol path.
+  assertThrows(function() { o[name] = "new value"; }, TypeError);
+  assertThrows(function() { o[name] += 10; }, TypeError);
+  assertThrows(function() { o[name] -= 10; }, TypeError);
+  assertThrows(function() { o[name] *= 10; }, TypeError);
+  assertThrows(function() { o[name] /= 10; }, TypeError);
+  assertThrows(function() { o[name]++; }, TypeError);
+  assertThrows(function() { o[name]--; }, TypeError);
+  assertThrows(function() { ++o[name]; }, TypeError);
+  assertThrows(function() { --o[name]; }, TypeError);
+
+  assertEquals(o.property, 7);
+})();
+
+
+(function TestAssignmentToReadOnlyLoop() {
+  var name = "prop" + "erty"; // to avoid symbol path.
+  var o = {};
+  Object.defineProperty(o, "property", { value: 7 });
+
+  function strict(o, name) {
+    "use strict";
+    o[name] = "new value";
+  }
+
+  for (var i = 0; i < 10; i ++) {
+    try {
+      strict(o, name);
+      assertUnreachable();
+    } catch(e) {
+      assertInstanceof(e, TypeError);
+    }
+  }
+})();
+
+
+// Specialized KeyedStoreIC experiencing miss.
+(function testKeyedStoreICStrict() {
+  var o = [9,8,7,6,5,4,3,2,1];
+
+  function test(o, i, v) {
+    "use strict";
+    o[i] = v;
+  }
+
+  for (var i = 0; i < 10; i ++) {
+    test(o, 5, 17);        // start specialized for smi indices
+    assertEquals(o[5], 17);
+    test(o, "a", 19);
+    assertEquals(o["a"], 19);
+    test(o, "5", 29);
+    assertEquals(o[5], 29);
+    test(o, 100000, 31);
+    assertEquals(o[100000], 31);
+  }
+})();
+
+
+(function TestSetElementWithoutSetter() {
+  "use strict";
+
+  var o = { };
+  Object.defineProperty(o, 0, { get : function() { } });
+
+  var zero_smi = 0;
+  var zero_number = new Number(0);
+  var zero_symbol = "0";
+  var zero_string = "-0-".substring(1,2);
+
+  assertThrows(function() { o[zero_smi] = "new value"; }, TypeError);
+  assertThrows(function() { o[zero_number] = "new value"; }, TypeError);
+  assertThrows(function() { o[zero_symbol] = "new value"; }, TypeError);
+  assertThrows(function() { o[zero_string] = "new value"; }, TypeError);
+})();
+
+
+(function TestSetElementNonConfigurable() {
+  "use strict";
+  var frozen = Object.freeze({});
+  var sealed = Object.seal({});
+
+  var zero_number = 0;
+  var zero_symbol = "0";
+  var zero_string = "-0-".substring(1,2);
+
+  assertThrows(function() { frozen[zero_number] = "value"; }, TypeError);
+  assertThrows(function() { sealed[zero_number] = "value"; }, TypeError);
+  assertThrows(function() { frozen[zero_symbol] = "value"; }, TypeError);
+  assertThrows(function() { sealed[zero_symbol] = "value"; }, TypeError);
+  assertThrows(function() { frozen[zero_string] = "value"; }, TypeError);
+  assertThrows(function() { sealed[zero_string] = "value"; }, TypeError);
+})();
+
+
+(function TestAssignmentToReadOnlyElement() {
+  "use strict";
+
+  var o = {};
+  Object.defineProperty(o, 7, { value: 17 });
+
+  var seven_smi = 7;
+  var seven_number = new Number(7);
+  var seven_symbol = "7";
+  var seven_string = "-7-".substring(1,2);
+
+  // Index with number.
+  assertThrows(function() { o[seven_smi] = "value"; }, TypeError);
+  assertThrows(function() { o[seven_smi] += 10; }, TypeError);
+  assertThrows(function() { o[seven_smi] -= 10; }, TypeError);
+  assertThrows(function() { o[seven_smi] *= 10; }, TypeError);
+  assertThrows(function() { o[seven_smi] /= 10; }, TypeError);
+  assertThrows(function() { o[seven_smi]++; }, TypeError);
+  assertThrows(function() { o[seven_smi]--; }, TypeError);
+  assertThrows(function() { ++o[seven_smi]; }, TypeError);
+  assertThrows(function() { --o[seven_smi]; }, TypeError);
+
+  assertThrows(function() { o[seven_number] = "value"; }, TypeError);
+  assertThrows(function() { o[seven_number] += 10; }, TypeError);
+  assertThrows(function() { o[seven_number] -= 10; }, TypeError);
+  assertThrows(function() { o[seven_number] *= 10; }, TypeError);
+  assertThrows(function() { o[seven_number] /= 10; }, TypeError);
+  assertThrows(function() { o[seven_number]++; }, TypeError);
+  assertThrows(function() { o[seven_number]--; }, TypeError);
+  assertThrows(function() { ++o[seven_number]; }, TypeError);
+  assertThrows(function() { --o[seven_number]; }, TypeError);
+
+  assertThrows(function() { o[seven_symbol] = "value"; }, TypeError);
+  assertThrows(function() { o[seven_symbol] += 10; }, TypeError);
+  assertThrows(function() { o[seven_symbol] -= 10; }, TypeError);
+  assertThrows(function() { o[seven_symbol] *= 10; }, TypeError);
+  assertThrows(function() { o[seven_symbol] /= 10; }, TypeError);
+  assertThrows(function() { o[seven_symbol]++; }, TypeError);
+  assertThrows(function() { o[seven_symbol]--; }, TypeError);
+  assertThrows(function() { ++o[seven_symbol]; }, TypeError);
+  assertThrows(function() { --o[seven_symbol]; }, TypeError);
+
+  assertThrows(function() { o[seven_string] = "value"; }, TypeError);
+  assertThrows(function() { o[seven_string] += 10; }, TypeError);
+  assertThrows(function() { o[seven_string] -= 10; }, TypeError);
+  assertThrows(function() { o[seven_string] *= 10; }, TypeError);
+  assertThrows(function() { o[seven_string] /= 10; }, TypeError);
+  assertThrows(function() { o[seven_string]++; }, TypeError);
+  assertThrows(function() { o[seven_string]--; }, TypeError);
+  assertThrows(function() { ++o[seven_string]; }, TypeError);
+  assertThrows(function() { --o[seven_string]; }, TypeError);
+
+  assertEquals(o[seven_number], 17);
+  assertEquals(o[seven_symbol], 17);
+  assertEquals(o[seven_string], 17);
+})();
+
+
+(function TestAssignmentToReadOnlyLoop() {
+  "use strict";
+
+  var o = {};
+  Object.defineProperty(o, 7, { value: 17 });
+
+  var seven_smi = 7;
+  var seven_number = new Number(7);
+  var seven_symbol = "7";
+  var seven_string = "-7-".substring(1,2);
+
+  for (var i = 0; i < 10; i ++) {
+    assertThrows(function() { o[seven_smi] = "value" }, TypeError);
+    assertThrows(function() { o[seven_number] = "value" }, TypeError);
+    assertThrows(function() { o[seven_symbol] = "value" }, TypeError);
+    assertThrows(function() { o[seven_string] = "value" }, TypeError);
+  }
+
+  assertEquals(o[7], 17);
+})();
+
+
+(function TestAssignmentToStringLength() {
+  "use strict";
+
+  var str_val = "string";
+  var str_obj = new String(str_val);
+  var str_cat = str_val + str_val + str_obj;
+
+  assertThrows(function() { str_val.length = 1; }, TypeError);
+  assertThrows(function() { str_obj.length = 1; }, TypeError);
+  assertThrows(function() { str_cat.length = 1; }, TypeError);
+})();
+
+
+(function TestArgumentsAliasing() {
+  function strict(a, b) {
+    "use strict";
+    a = "c";
+    b = "d";
+    return [a, b, arguments[0], arguments[1]];
+  }
+
+  function nonstrict(a, b) {
+    a = "c";
+    b = "d";
+    return [a, b, arguments[0], arguments[1]];
+  }
+
+  assertEquals(["c", "d", "a", "b"], strict("a", "b"));
+  assertEquals(["c", "d", "c", "d"], nonstrict("a", "b"));
+})();
+
+
+function CheckPillDescriptor(func, name) {
+
+  function CheckPill(pill) {
+    assertEquals("function", typeof pill);
+    assertInstanceof(pill, Function);
+    pill.property = "value";
+    assertEquals(pill.value, undefined);
+    assertThrows(function() { 'use strict'; pill.property = "value"; },
+                 TypeError);
+    assertThrows(pill, TypeError);
+    assertEquals(pill.prototype, (function(){}).prototype);
+    var d = Object.getOwnPropertyDescriptor(pill, "prototype");
+    assertFalse(d.writable);
+    assertFalse(d.configurable);
+    assertFalse(d.enumerable);
+  }
+
+  var descriptor = Object.getOwnPropertyDescriptor(func, name);
+  CheckPill(descriptor.get)
+  CheckPill(descriptor.set);
+  assertFalse(descriptor.enumerable);
+  assertFalse(descriptor.configurable);
+}
+
+
+(function TestStrictFunctionPills() {
+  function strict() {
+    "use strict";
+  }
+  assertThrows(function() { strict.caller; }, TypeError);
+  assertThrows(function() { strict.arguments; }, TypeError);
+
+  var another = new Function("'use strict'");
+  assertThrows(function() { another.caller; }, TypeError);
+  assertThrows(function() { another.arguments; }, TypeError);
+
+  var third = (function() { "use strict"; return function() {}; })();
+  assertThrows(function() { third.caller; }, TypeError);
+  assertThrows(function() { third.arguments; }, TypeError);
+
+  CheckPillDescriptor(strict, "caller");
+  CheckPillDescriptor(strict, "arguments");
+  CheckPillDescriptor(another, "caller");
+  CheckPillDescriptor(another, "arguments");
+  CheckPillDescriptor(third, "caller");
+  CheckPillDescriptor(third, "arguments");
+})();
+
+
+(function TestStrictFunctionWritablePrototype() {
+  "use strict";
+  function TheClass() {
+  }
+  assertThrows(function() { TheClass.caller; }, TypeError);
+  assertThrows(function() { TheClass.arguments; }, TypeError);
+
+  // Strict functions must have writable prototype.
+  TheClass.prototype = {
+    func: function() { return "func_value"; },
+    get accessor() { return "accessor_value"; },
+    property: "property_value",
+  };
+
+  var o = new TheClass();
+  assertEquals(o.func(), "func_value");
+  assertEquals(o.accessor, "accessor_value");
+  assertEquals(o.property, "property_value");
+})();
+
+
+(function TestStrictArgumentPills() {
+  function strict() {
+    "use strict";
+    return arguments;
+  }
+
+  var args = strict();
+  CheckPillDescriptor(args, "caller");
+  CheckPillDescriptor(args, "callee");
+
+  args = strict(17, "value", strict);
+  assertEquals(17, args[0])
+  assertEquals("value", args[1])
+  assertEquals(strict, args[2]);
+  CheckPillDescriptor(args, "caller");
+  CheckPillDescriptor(args, "callee");
+
+  function outer() {
+    "use strict";
+    function inner() {
+      return arguments;
+    }
+    return inner;
+  }
+
+  var args = outer()();
+  CheckPillDescriptor(args, "caller");
+  CheckPillDescriptor(args, "callee");
+
+  args = outer()(17, "value", strict);
+  assertEquals(17, args[0])
+  assertEquals("value", args[1])
+  assertEquals(strict, args[2]);
+  CheckPillDescriptor(args, "caller");
+  CheckPillDescriptor(args, "callee");
+})();
+
+
+(function TestNonStrictFunctionCallerPillSimple() {
+  function return_my_caller() {
+    return return_my_caller.caller;
+  }
+
+  function strict() {
+    "use strict";
+    return_my_caller();
+  }
+  assertThrows(strict, TypeError);
+
+  function non_strict() {
+    return return_my_caller();
+  }
+  assertSame(non_strict(), non_strict);
+})();
+
+
+(function TestNonStrictFunctionCallerPill() {
+  function strict(n) {
+    "use strict";
+    non_strict(n);
+  }
+
+  function recurse(n, then) {
+    if (n > 0) {
+      recurse(n - 1);
+    } else {
+      return then();
+    }
+  }
+
+  function non_strict(n) {
+    recurse(n, function() { non_strict.caller; });
+  }
+
+  function test(n) {
+    try {
+      recurse(n, function() { strict(n); });
+    } catch(e) {
+      return e instanceof TypeError;
+    }
+    return false;
+  }
+
+  for (var i = 0; i < 10; i ++) {
+    assertEquals(test(i), true);
   }
 })();

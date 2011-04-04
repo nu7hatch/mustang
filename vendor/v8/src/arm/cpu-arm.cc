@@ -42,10 +42,12 @@ namespace v8 {
 namespace internal {
 
 void CPU::Setup() {
-  CpuFeatures::Probe(true);
-  if (!CpuFeatures::IsSupported(VFP3) || Serializer::enabled()) {
-    V8::DisableCrankshaft();
-  }
+  CpuFeatures::Probe();
+}
+
+
+bool CPU::SupportsCrankshaft() {
+  return CpuFeatures::IsSupported(VFP3);
 }
 
 
@@ -61,7 +63,7 @@ void CPU::FlushICache(void* start, size_t size) {
   // that the Icache was flushed.
   // None of this code ends up in the snapshot so there are no issues
   // around whether or not to generate the code when building snapshots.
-  Simulator::FlushICache(start, size);
+  Simulator::FlushICache(Isolate::Current()->simulator_i_cache(), start, size);
 #else
   // Ideally, we would call
   //   syscall(__ARM_NR_cacheflush, start,

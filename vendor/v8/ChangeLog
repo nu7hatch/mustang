@@ -1,3 +1,120 @@
+2011-04-04: Version 3.2.7
+
+        Disabled the original 'classic' V8 code generator.  Crankshaft is
+        now the default on all platforms.
+
+        Changed the heap profiler to use more descriptive names.
+
+        Performance and stability improvements to isolates on all platforms.
+
+
+2011-03-30: Version 3.2.6
+
+        Fixed xcode build warning in shell.cc (out of order initialization).
+
+        Fixed null-pointer dereference in the compiler when running without
+        SSE3 support (Chromium issue 77654).
+
+        Fixed x64 compilation error due to some dead code. (Issue 1286)
+
+        Introduced scons target to build the preparser stand-alone example.
+
+        Made FreeBSD build and pass all tests.
+
+
+2011-03-28: Version 3.2.5
+
+        Fixed build with Irregexp interpreter (issue 1266).
+
+        Added Crankshaft support for external arrays.
+
+        Fixed two potential crash bugs.
+
+
+2011-03-23: Version 3.2.4
+
+        Added isolates which allows several V8 instances in the same process.
+        This is controlled through the new Isolate class in the API.
+
+        Implemented more of EcmaScript 5 strict mode.
+
+        Reduced the time it takes to make detailed heap snapshot.
+
+        Added a number of commands to the ARM simulator and enhanced the ARM
+        disassembler.
+
+
+2011-03-17: Version 3.2.3
+
+        Fixed a number of crash bugs.
+
+        Fixed Array::New(length) to return an array with a length (issue 1256).
+
+        Fixed FreeBSD build.
+
+        Changed __defineGetter__ to not throw (matching the behavior of Safari).
+
+        Implemented more of EcmaScript 5 strict mode.
+
+        Improved Crankshaft performance on all platforms.
+
+
+2011-03-14: Version 3.2.2
+
+        Fixed a number of crash and correctness bugs.
+
+        Improved Crankshaft performance on all platforms.
+
+        Fixed Crankshaft on Solaris/Illumos.
+
+
+2011-03-10: Version 3.2.1
+
+        Fixed a number of crash bugs.
+
+        Improved Crankshaft for x64 and ARM.
+
+        Implemented more of EcmaScript 5 strict mode.
+
+
+2011-03-07: Version 3.2.0
+
+        Fixed a number of crash bugs.
+
+        Turned on Crankshaft by default on x64 and ARM.
+
+        Improved Crankshaft for x64 and ARM.
+
+        Implemented more of EcmaScript 5 strict mode.
+
+
+2011-03-02: Version 3.1.8
+
+        Fixed a number of crash bugs.
+
+        Improved Crankshaft for x64 and ARM.
+
+        Implemented more of EcmaScript 5 strict mode.
+
+        Fixed issue with unaligned reads and writes on ARM.
+
+        Improved heap profiler support.
+
+
+2011-02-28: Version 3.1.7
+
+        Fixed a number of crash bugs.
+
+        Improved Crankshaft for x64 and ARM.
+
+        Fixed implementation of indexOf/lastIndexOf for sparse
+        arrays (http://crbug.com/73940).
+
+        Fixed bug in map space compaction (http://crbug.com/59688).
+
+        Added support for direct getter accessors calls on ARM.
+
+
 2011-02-24: Version 3.1.6
 
         Fixed a number of crash bugs.

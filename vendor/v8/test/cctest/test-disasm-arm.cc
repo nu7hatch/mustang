@@ -72,11 +72,11 @@ bool DisassembleAndCompare(byte* pc, const char* compare_string) {
 // Setup V8 to a state where we can at least run the assembler and
 // disassembler. Declare the variables and allocate the data structures used
 // in the rest of the macros.
-#define SETUP() \
-  InitializeVM(); \
-  v8::HandleScope scope; \
+#define SETUP()                                           \
+  InitializeVM();                                         \
+  v8::HandleScope scope;                                  \
   byte *buffer = reinterpret_cast<byte*>(malloc(4*1024)); \
-  Assembler assm(buffer, 4*1024); \
+  Assembler assm(Isolate::Current(), buffer, 4*1024);     \
   bool failure = false;
 
 
@@ -439,6 +439,11 @@ TEST(Vfp) {
             "eeb00bc1       vabs d0, d1");
     COMPARE(vabs(d3, d4, mi),
             "4eb03bc4       vabsmi d3, d4");
+
+    COMPARE(vneg(d0, d1),
+            "eeb10b41       vneg d0, d1");
+    COMPARE(vneg(d3, d4, mi),
+            "4eb13b44       vnegmi d3, d4");
 
     COMPARE(vadd(d0, d1, d2),
             "ee310b02       vadd.f64 d0, d1, d2");

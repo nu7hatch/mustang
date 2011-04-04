@@ -37,6 +37,7 @@
 #ifndef V8_IA32_ASSEMBLER_IA32_H_
 #define V8_IA32_ASSEMBLER_IA32_H_
 
+#include "isolate.h"
 #include "serialize.h"
 
 namespace v8 {
@@ -447,14 +448,13 @@ class Displacement BASE_EMBEDDED {
 //   }
 class CpuFeatures : public AllStatic {
  public:
-  // Detect features of the target CPU. If the portable flag is set,
-  // the method sets safe defaults if the serializer is enabled
-  // (snapshots must be portable).
-  static void Probe(bool portable);
-  static void Clear() { supported_ = 0; }
+  // Detect features of the target CPU. Set safe defaults if the serializer
+  // is enabled (snapshots must be portable).
+  static void Probe();
 
   // Check whether a feature is supported by the target CPU.
   static bool IsSupported(CpuFeature f) {
+    ASSERT(initialized_);
     if (f == SSE2 && !FLAG_enable_sse2) return false;
     if (f == SSE3 && !FLAG_enable_sse3) return false;
     if (f == SSE4_1 && !FLAG_enable_sse4_1) return false;
@@ -462,10 +462,22 @@ class CpuFeatures : public AllStatic {
     if (f == RDTSC && !FLAG_enable_rdtsc) return false;
     return (supported_ & (static_cast<uint64_t>(1) << f)) != 0;
   }
+
+#ifdef DEBUG
   // Check whether a feature is currently enabled.
   static bool IsEnabled(CpuFeature f) {
-    return (enabled_ & (static_cast<uint64_t>(1) << f)) != 0;
+    ASSERT(initialized_);
+    Isolate* isolate = Isolate::UncheckedCurrent();
+    if (isolate == NULL) {
+      // When no isolate is available, work as if we're running in
+      // release mode.
+      return IsSupported(f);
+    }
+    uint64_t enabled = isolate->enabled_cpu_features();
+    return (enabled & (static_cast<uint64_t>(1) << f)) != 0;
   }
+#endif
+
   // Enable a specified feature within a scope.
   class Scope BASE_EMBEDDED {
 #ifdef DEBUG
@@ -473,26 +485,68 @@ class CpuFeatures : public AllStatic {
     explicit Scope(CpuFeature f) {
       uint64_t mask = static_cast<uint64_t>(1) << f;
       ASSERT(CpuFeatures::IsSupported(f));
-      ASSERT(!Serializer::enabled() || (found_by_runtime_probing_ & mask) == 0);
-      old_enabled_ = CpuFeatures::enabled_;
-      CpuFeatures::enabled_ |= mask;
+      ASSERT(!Serializer::enabled() ||
+             (CpuFeatures::found_by_runtime_probing_ & mask) == 0);
+      isolate_ = Isolate::UncheckedCurrent();
+      old_enabled_ = 0;
+      if (isolate_ != NULL) {
+        old_enabled_ = isolate_->enabled_cpu_features();
+        isolate_->set_enabled_cpu_features(old_enabled_ | mask);
+      }
     }
-    ~Scope() { CpuFeatures::enabled_ = old_enabled_; }
+    ~Scope() {
+      ASSERT_EQ(Isolate::UncheckedCurrent(), isolate_);
+      if (isolate_ != NULL) {
+        isolate_->set_enabled_cpu_features(old_enabled_);
+      }
+    }
    private:
+    Isolate* isolate_;
     uint64_t old_enabled_;
 #else
    public:
     explicit Scope(CpuFeature f) {}
 #endif
   };
+
+  class TryForceFeatureScope BASE_EMBEDDED {
+   public:
+    explicit TryForceFeatureScope(CpuFeature f)
+        : old_supported_(CpuFeatures::supported_) {
+      if (CanForce()) {
+        CpuFeatures::supported_ |= (static_cast<uint64_t>(1) << f);
+      }
+    }
+
+    ~TryForceFeatureScope() {
+      if (CanForce()) {
+        CpuFeatures::supported_ = old_supported_;
+      }
+    }
+
+   private:
+    static bool CanForce() {
+      // It's only safe to temporarily force support of CPU features
+      // when there's only a single isolate, which is guaranteed when
+      // the serializer is enabled.
+      return Serializer::enabled();
+    }
+
+    const uint64_t old_supported_;
+  };
+
  private:
+#ifdef DEBUG
+  static bool initialized_;
+#endif
   static uint64_t supported_;
-  static uint64_t enabled_;
   static uint64_t found_by_runtime_probing_;
+
+  DISALLOW_COPY_AND_ASSIGN(CpuFeatures);
 };
 
 
-class Assembler : public Malloced {
+class Assembler : public AssemblerBase {
  private:
   // We check before assembling an instruction that there is sufficient
   // space to write an instruction and its relocation information.
@@ -519,8 +573,12 @@ class Assembler : public Malloced {
   // for code generation and assumes its size to be buffer_size. If the buffer
   // is too small, a fatal error occurs. No deallocation of the buffer is done
   // upon destruction of the assembler.
-  Assembler(void* buffer, int buffer_size);
+  // TODO(vitalyr): the assembler does not need an isolate.
+  Assembler(Isolate* isolate, void* buffer, int buffer_size);
   ~Assembler();
+
+  // Overrides the default provided by FLAG_debug_code.
+  void set_emit_debug_code(bool value) { emit_debug_code_ = value; }
 
   // GetCode emits any pending (non-emitted) code and fills the descriptor
   // desc. GetCode() is idempotent; it returns the same result if no other
@@ -885,6 +943,7 @@ class Assembler : public Malloced {
 
   void cvtsi2sd(XMMRegister dst, const Operand& src);
   void cvtss2sd(XMMRegister dst, XMMRegister src);
+  void cvtsd2ss(XMMRegister dst, XMMRegister src);
 
   void addsd(XMMRegister dst, XMMRegister src);
   void subsd(XMMRegister dst, XMMRegister src);
@@ -914,6 +973,10 @@ class Assembler : public Malloced {
   void movd(XMMRegister dst, const Operand& src);
   void movd(const Operand& src, XMMRegister dst);
   void movsd(XMMRegister dst, XMMRegister src);
+
+  void movss(XMMRegister dst, const Operand& src);
+  void movss(const Operand& src, XMMRegister dst);
+  void movss(XMMRegister dst, XMMRegister src);
 
   void pand(XMMRegister dst, XMMRegister src);
   void pxor(XMMRegister dst, XMMRegister src);
@@ -982,6 +1045,8 @@ class Assembler : public Malloced {
   static const int kMinimalBufferSize = 4*KB;
 
  protected:
+  bool emit_debug_code() const { return emit_debug_code_; }
+
   void movsd(XMMRegister dst, const Operand& src);
   void movsd(const Operand& dst, XMMRegister src);
 
@@ -989,7 +1054,8 @@ class Assembler : public Malloced {
   void emit_sse_operand(XMMRegister dst, XMMRegister src);
   void emit_sse_operand(Register dst, XMMRegister src);
 
-  byte* addr_at(int pos)  { return buffer_ + pos; }
+  byte* addr_at(int pos) { return buffer_ + pos; }
+
  private:
   byte byte_at(int pos)  { return buffer_[pos]; }
   void set_byte_at(int pos, byte value) { buffer_[pos] = value; }
@@ -1045,8 +1111,6 @@ class Assembler : public Malloced {
   int buffer_size_;
   // True if the assembler owns the buffer, false if buffer is external.
   bool own_buffer_;
-  // A previously allocated buffer of kMinimalBufferSize bytes, or NULL.
-  static byte* spare_buffer_;
 
   // code generation
   byte* pc_;  // the program counter; moves forward
@@ -1056,6 +1120,8 @@ class Assembler : public Malloced {
   byte* last_pc_;
 
   PositionsRecorder positions_recorder_;
+
+  bool emit_debug_code_;
 
   friend class PositionsRecorder;
 };

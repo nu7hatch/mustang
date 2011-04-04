@@ -318,14 +318,15 @@ enum InlineCacheHolderFlag {
 // Must fit in the BitField PropertyDetails::TypeField.
 // A copy of this is in mirror-debugger.js.
 enum PropertyType {
-  NORMAL              = 0,  // only in slow mode
-  FIELD               = 1,  // only in fast mode
-  CONSTANT_FUNCTION   = 2,  // only in fast mode
-  CALLBACKS           = 3,
-  INTERCEPTOR         = 4,  // only in lookup results, not in descriptors.
-  MAP_TRANSITION      = 5,  // only in fast mode
-  CONSTANT_TRANSITION = 6,  // only in fast mode
-  NULL_DESCRIPTOR     = 7,  // only in fast mode
+  NORMAL                    = 0,  // only in slow mode
+  FIELD                     = 1,  // only in fast mode
+  CONSTANT_FUNCTION         = 2,  // only in fast mode
+  CALLBACKS                 = 3,
+  INTERCEPTOR               = 4,  // only in lookup results, not in descriptors.
+  MAP_TRANSITION            = 5,  // only in fast mode
+  EXTERNAL_ARRAY_TRANSITION = 6,
+  CONSTANT_TRANSITION       = 7,  // only in fast mode
+  NULL_DESCRIPTOR           = 8,  // only in fast mode
   // All properties before MAP_TRANSITION are real.
   FIRST_PHANTOM_PROPERTY_TYPE = MAP_TRANSITION,
   // There are no IC stubs for NULL_DESCRIPTORS. Therefore,
@@ -443,11 +444,11 @@ enum StateTag {
 #define TRACK_MEMORY(name) \
   void* operator new(size_t size) { \
     void* result = ::operator new(size); \
-    Logger::NewEvent(name, result, size); \
+    Logger::NewEventStatic(name, result, size); \
     return result; \
   } \
   void operator delete(void* object) { \
-    Logger::DeleteEvent(name, object); \
+    Logger::DeleteEventStatic(name, object); \
     ::operator delete(object); \
   }
 #else
@@ -467,12 +468,17 @@ enum CpuFeature { SSE4_1 = 32 + 19,  // x86
                   CPUID = 10,  // x86
                   VFP3 = 1,    // ARM
                   ARMv7 = 2,   // ARM
-                  SAHF = 0};   // x86
+                  SAHF = 0,    // x86
+                  FPU = 1};    // MIPS
 
 // The Strict Mode (ECMA-262 5th edition, 4.2.2).
 enum StrictModeFlag {
   kNonStrictMode,
-  kStrictMode
+  kStrictMode,
+  // This value is never used, but is needed to prevent GCC 4.5 from failing
+  // to compile when we assert that a flag is either kNonStrictMode or
+  // kStrictMode.
+  kInvalidStrictFlag
 };
 
 } }  // namespace v8::internal

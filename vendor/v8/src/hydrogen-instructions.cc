@@ -36,6 +36,8 @@
 #include "x64/lithium-x64.h"
 #elif V8_TARGET_ARCH_ARM
 #include "arm/lithium-arm.h"
+#elif V8_TARGET_ARCH_MIPS
+#include "mips/lithium-mips.h"
 #else
 #error Unsupported target architecture.
 #endif
@@ -117,6 +119,44 @@ void Range::AddConstant(int32_t value) {
   lower_ = AddWithoutOverflow(lower_, value, &may_overflow);
   upper_ = AddWithoutOverflow(upper_, value, &may_overflow);
   Verify();
+}
+
+
+void Range::Intersect(Range* other) {
+  upper_ = Min(upper_, other->upper_);
+  lower_ = Max(lower_, other->lower_);
+  bool b = CanBeMinusZero() && other->CanBeMinusZero();
+  set_can_be_minus_zero(b);
+}
+
+
+void Range::Union(Range* other) {
+  upper_ = Max(upper_, other->upper_);
+  lower_ = Min(lower_, other->lower_);
+  bool b = CanBeMinusZero() || other->CanBeMinusZero();
+  set_can_be_minus_zero(b);
+}
+
+
+void Range::Sar(int32_t value) {
+  int32_t bits = value & 0x1F;
+  lower_ = lower_ >> bits;
+  upper_ = upper_ >> bits;
+  set_can_be_minus_zero(false);
+}
+
+
+void Range::Shl(int32_t value) {
+  int32_t bits = value & 0x1F;
+  int old_lower = lower_;
+  int old_upper = upper_;
+  lower_ = lower_ << bits;
+  upper_ = upper_ << bits;
+  if (old_lower != lower_ >> bits || old_upper != upper_ >> bits) {
+    upper_ = kMaxInt;
+    lower_ = kMinInt;
+  }
+  set_can_be_minus_zero(false);
 }
 
 
@@ -285,24 +325,19 @@ void HValue::SetOperandAt(int index, HValue* value) {
 
 
 void HValue::ReplaceAndDelete(HValue* other) {
-  ReplaceValue(other);
+  if (other != NULL) ReplaceValue(other);
   Delete();
 }
 
 
 void HValue::ReplaceValue(HValue* other) {
-  ZoneList<HValue*> start_uses(2);
   for (int i = 0; i < uses_.length(); ++i) {
-    HValue* use = uses_.at(i);
-    if (!use->block()->IsStartBlock()) {
-      InternalReplaceAtUse(use, other);
-      other->uses_.Add(use);
-    } else {
-      start_uses.Add(use);
-    }
+    HValue* use = uses_[i];
+    ASSERT(!use->block()->IsStartBlock());
+    InternalReplaceAtUse(use, other);
+    other->uses_.Add(use);
   }
-  uses_.Clear();
-  uses_.AddAll(start_uses);
+  uses_.Rewind(0);
 }
 
 
@@ -381,10 +416,7 @@ bool HValue::UpdateInferredType() {
 void HValue::RegisterUse(int index, HValue* new_value) {
   HValue* old_value = OperandAt(index);
   if (old_value == new_value) return;
-  if (old_value != NULL) {
-    ASSERT(old_value->uses_.Contains(this));
-    old_value->uses_.RemoveElement(this);
-  }
+  if (old_value != NULL) old_value->uses_.RemoveElement(this);
   if (new_value != NULL) {
     new_value->uses_.Add(this);
   }
@@ -420,7 +452,9 @@ void HInstruction::PrintTo(StringStream* stream) {
   stream->Add(" ");
   PrintDataTo(stream);
 
-  if (range() != NULL) {
+  if (range() != NULL &&
+      !range()->IsMostGeneric() &&
+      !range()->CanBeMinusZero()) {
     stream->Add(" range[%d,%d,m0=%d]",
                 range()->lower(),
                 range()->upper(),
@@ -744,6 +778,8 @@ Range* HValue::InferRange() {
   } else if (representation().IsNone()) {
     return NULL;
   } else {
+    // Untagged integer32 cannot be -0 and we don't compute ranges for
+    // untagged doubles.
     return new Range();
   }
 }
@@ -755,7 +791,7 @@ Range* HConstant::InferRange() {
     result->set_can_be_minus_zero(false);
     return result;
   }
-  return HInstruction::InferRange();
+  return HValue::InferRange();
 }
 
 
@@ -789,7 +825,7 @@ Range* HAdd::InferRange() {
     res->set_can_be_minus_zero(m0);
     return res;
   } else {
-    return HArithmeticBinaryOperation::InferRange();
+    return HValue::InferRange();
   }
 }
 
@@ -805,7 +841,7 @@ Range* HSub::InferRange() {
     res->set_can_be_minus_zero(a->CanBeMinusZero() && b->CanBeZero());
     return res;
   } else {
-    return HArithmeticBinaryOperation::InferRange();
+    return HValue::InferRange();
   }
 }
 
@@ -823,7 +859,7 @@ Range* HMul::InferRange() {
     res->set_can_be_minus_zero(m0);
     return res;
   } else {
-    return HArithmeticBinaryOperation::InferRange();
+    return HValue::InferRange();
   }
 }
 
@@ -848,7 +884,7 @@ Range* HDiv::InferRange() {
     }
     return result;
   } else {
-    return HArithmeticBinaryOperation::InferRange();
+    return HValue::InferRange();
   }
 }
 
@@ -865,7 +901,7 @@ Range* HMod::InferRange() {
     }
     return result;
   } else {
-    return HArithmeticBinaryOperation::InferRange();
+    return HValue::InferRange();
   }
 }
 
@@ -893,6 +929,14 @@ void HPhi::AddInput(HValue* value) {
   if (!CheckFlag(kIsArguments) && value->CheckFlag(kIsArguments)) {
     SetFlag(kIsArguments);
   }
+}
+
+
+bool HPhi::HasRealUses() {
+  for (int i = 0; i < uses()->length(); i++) {
+    if (!uses()->at(i)->IsPhi()) return true;
+  }
+  return false;
 }
 
 
@@ -1001,7 +1045,7 @@ HConstant* HConstant::CopyToRepresentation(Representation r) const {
 HConstant* HConstant::CopyToTruncatedInt32() const {
   if (!has_double_value_) return NULL;
   int32_t truncated = NumberToInt32(*handle_);
-  return new HConstant(Factory::NewNumberFromInt(truncated),
+  return new HConstant(FACTORY->NewNumberFromInt(truncated),
                        Representation::Integer32());
 }
 
@@ -1012,7 +1056,7 @@ void HConstant::PrintDataTo(StringStream* stream) {
 
 
 bool HArrayLiteral::IsCopyOnWrite() const {
-  return constant_elements()->map() == Heap::fixed_cow_array_map();
+  return constant_elements()->map() == HEAP->fixed_cow_array_map();
 }
 
 
@@ -1026,34 +1070,30 @@ void HBinaryOperation::PrintDataTo(StringStream* stream) {
 
 
 Range* HBitAnd::InferRange() {
-  Range* a = left()->range();
-  Range* b = right()->range();
-  int32_t a_mask = 0xffffffff;
-  int32_t b_mask = 0xffffffff;
-  if (a != NULL) a_mask = a->Mask();
-  if (b != NULL) b_mask = b->Mask();
-  int32_t result_mask = a_mask & b_mask;
-  if (result_mask >= 0) {
-    return new Range(0, result_mask);
-  } else {
-    return HBinaryOperation::InferRange();
-  }
+  int32_t left_mask = (left()->range() != NULL)
+      ? left()->range()->Mask()
+      : 0xffffffff;
+  int32_t right_mask = (right()->range() != NULL)
+      ? right()->range()->Mask()
+      : 0xffffffff;
+  int32_t result_mask = left_mask & right_mask;
+  return (result_mask >= 0)
+      ? new Range(0, result_mask)
+      : HValue::InferRange();
 }
 
 
 Range* HBitOr::InferRange() {
-  Range* a = left()->range();
-  Range* b = right()->range();
-  int32_t a_mask = 0xffffffff;
-  int32_t b_mask = 0xffffffff;
-  if (a != NULL) a_mask = a->Mask();
-  if (b != NULL) b_mask = b->Mask();
-  int32_t result_mask = a_mask | b_mask;
-  if (result_mask >= 0) {
-    return new Range(0, result_mask);
-  } else {
-    return HBinaryOperation::InferRange();
-  }
+  int32_t left_mask = (left()->range() != NULL)
+      ? left()->range()->Mask()
+      : 0xffffffff;
+  int32_t right_mask = (right()->range() != NULL)
+      ? right()->range()->Mask()
+      : 0xffffffff;
+  int32_t result_mask = left_mask | right_mask;
+  return (result_mask >= 0)
+      ? new Range(0, result_mask)
+      : HValue::InferRange();
 }
 
 
@@ -1061,20 +1101,14 @@ Range* HSar::InferRange() {
   if (right()->IsConstant()) {
     HConstant* c = HConstant::cast(right());
     if (c->HasInteger32Value()) {
-      int32_t val = c->Integer32Value();
-      Range* result = NULL;
-      Range* left_range = left()->range();
-      if (left_range == NULL) {
-        result = new Range();
-      } else {
-        result = left_range->Copy();
-      }
-      result->Sar(val);
+      Range* result = (left()->range() != NULL)
+          ? left()->range()->Copy()
+          : new Range();
+      result->Sar(c->Integer32Value());
       return result;
     }
   }
-
-  return HBinaryOperation::InferRange();
+  return HValue::InferRange();
 }
 
 
@@ -1082,20 +1116,14 @@ Range* HShl::InferRange() {
   if (right()->IsConstant()) {
     HConstant* c = HConstant::cast(right());
     if (c->HasInteger32Value()) {
-      int32_t val = c->Integer32Value();
-      Range* result = NULL;
-      Range* left_range = left()->range();
-      if (left_range == NULL) {
-        result = new Range();
-      } else {
-        result = left_range->Copy();
-      }
-      result->Shl(val);
+      Range* result = (left()->range() != NULL)
+          ? left()->range()->Copy()
+          : new Range();
+      result->Shl(c->Integer32Value());
       return result;
     }
   }
-
-  return HBinaryOperation::InferRange();
+  return HValue::InferRange();
 }
 
 
@@ -1130,6 +1158,60 @@ void HLoadNamedField::PrintDataTo(StringStream* stream) {
 }
 
 
+HLoadNamedFieldPolymorphic::HLoadNamedFieldPolymorphic(HValue* object,
+                                                       ZoneMapList* types,
+                                                       Handle<String> name)
+    : HUnaryOperation(object),
+      types_(Min(types->length(), kMaxLoadPolymorphism)),
+      name_(name),
+      need_generic_(false) {
+  set_representation(Representation::Tagged());
+  SetFlag(kDependsOnMaps);
+  for (int i = 0;
+       i < types->length() && types_.length() < kMaxLoadPolymorphism;
+       ++i) {
+    Handle<Map> map = types->at(i);
+    LookupResult lookup;
+    map->LookupInDescriptors(NULL, *name, &lookup);
+    if (lookup.IsProperty() && lookup.type() == FIELD) {
+      types_.Add(types->at(i));
+      int index = lookup.GetLocalFieldIndexFromMap(*map);
+      if (index < 0) {
+        SetFlag(kDependsOnInobjectFields);
+      } else {
+        SetFlag(kDependsOnBackingStoreFields);
+      }
+    }
+  }
+
+  if (types_.length() == types->length() && FLAG_deoptimize_uncommon_cases) {
+    SetFlag(kUseGVN);
+  } else {
+    SetAllSideEffects();
+    need_generic_ = true;
+  }
+}
+
+
+bool HLoadNamedFieldPolymorphic::DataEquals(HValue* value) {
+  HLoadNamedFieldPolymorphic* other = HLoadNamedFieldPolymorphic::cast(value);
+  if (types_.length() != other->types()->length()) return false;
+  if (!name_.is_identical_to(other->name())) return false;
+  if (need_generic_ != other->need_generic_) return false;
+  for (int i = 0; i < types_.length(); i++) {
+    bool found = false;
+    for (int j = 0; j < types_.length(); j++) {
+      if (types_.at(j).is_identical_to(other->types()->at(i))) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) return false;
+  }
+  return true;
+}
+
+
 void HLoadKeyedFastElement::PrintDataTo(StringStream* stream) {
   object()->PrintNameTo(stream);
   stream->Add("[");
@@ -1146,8 +1228,36 @@ void HLoadKeyedGeneric::PrintDataTo(StringStream* stream) {
 }
 
 
-void HLoadPixelArrayElement::PrintDataTo(StringStream* stream) {
+void HLoadKeyedSpecializedArrayElement::PrintDataTo(
+    StringStream* stream) {
   external_pointer()->PrintNameTo(stream);
+  stream->Add(".");
+  switch (array_type()) {
+    case kExternalByteArray:
+      stream->Add("byte");
+      break;
+    case kExternalUnsignedByteArray:
+      stream->Add("u_byte");
+      break;
+    case kExternalShortArray:
+      stream->Add("short");
+      break;
+    case kExternalUnsignedShortArray:
+      stream->Add("u_short");
+      break;
+    case kExternalIntArray:
+      stream->Add("int");
+      break;
+    case kExternalUnsignedIntArray:
+      stream->Add("u_int");
+      break;
+    case kExternalFloatArray:
+      stream->Add("float");
+      break;
+    case kExternalPixelArray:
+      stream->Add("pixel");
+      break;
+  }
   stream->Add("[");
   key()->PrintNameTo(stream);
   stream->Add("]");
@@ -1195,8 +1305,36 @@ void HStoreKeyedGeneric::PrintDataTo(StringStream* stream) {
 }
 
 
-void HStorePixelArrayElement::PrintDataTo(StringStream* stream) {
+void HStoreKeyedSpecializedArrayElement::PrintDataTo(
+    StringStream* stream) {
   external_pointer()->PrintNameTo(stream);
+  stream->Add(".");
+  switch (array_type()) {
+    case kExternalByteArray:
+      stream->Add("byte");
+      break;
+    case kExternalUnsignedByteArray:
+      stream->Add("u_byte");
+      break;
+    case kExternalShortArray:
+      stream->Add("short");
+      break;
+    case kExternalUnsignedShortArray:
+      stream->Add("u_short");
+      break;
+    case kExternalIntArray:
+      stream->Add("int");
+      break;
+    case kExternalUnsignedIntArray:
+      stream->Add("u_int");
+      break;
+    case kExternalFloatArray:
+      stream->Add("float");
+      break;
+    case kExternalPixelArray:
+      stream->Add("pixel");
+      break;
+  }
   stream->Add("[");
   key()->PrintNameTo(stream);
   stream->Add("] = ");
@@ -1204,9 +1342,14 @@ void HStorePixelArrayElement::PrintDataTo(StringStream* stream) {
 }
 
 
-void HLoadGlobal::PrintDataTo(StringStream* stream) {
+void HLoadGlobalCell::PrintDataTo(StringStream* stream) {
   stream->Add("[%p]", *cell());
   if (check_hole_value()) stream->Add(" (deleteable/read-only)");
+}
+
+
+void HLoadGlobalGeneric::PrintDataTo(StringStream* stream) {
+  stream->Add("%o ", *name());
 }
 
 

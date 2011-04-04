@@ -1,4 +1,4 @@
-// Copyright 2009 the V8 project authors. All rights reserved.
+// Copyright 2011 the V8 project authors. All rights reserved.
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
@@ -67,7 +67,9 @@ class VirtualFrame : public ZoneObject {
    private:
     bool previous_state_;
 
-    CodeGenerator* cgen() { return CodeGeneratorScope::Current(); }
+    CodeGenerator* cgen() {
+      return CodeGeneratorScope::Current(Isolate::Current());
+    }
   };
 
   // An illegal index into the virtual frame.
@@ -79,7 +81,10 @@ class VirtualFrame : public ZoneObject {
   // Construct a virtual frame as a clone of an existing one.
   explicit inline VirtualFrame(VirtualFrame* original);
 
-  CodeGenerator* cgen() { return CodeGeneratorScope::Current(); }
+  CodeGenerator* cgen() {
+    return CodeGeneratorScope::Current(Isolate::Current());
+  }
+
   MacroAssembler* masm() { return cgen()->masm(); }
 
   // Create a duplicate of an existing valid frame element.
@@ -315,7 +320,7 @@ class VirtualFrame : public ZoneObject {
 
   // Call runtime given the number of arguments expected on (and
   // removed from) the stack.
-  Result CallRuntime(Runtime::Function* f, int arg_count);
+  Result CallRuntime(const Runtime::Function* f, int arg_count);
   Result CallRuntime(Runtime::FunctionId id, int arg_count);
 
 #ifdef ENABLE_DEBUGGER_SUPPORT
@@ -342,8 +347,7 @@ class VirtualFrame : public ZoneObject {
                      StrictModeFlag strict_mode);
 
   // Call keyed store IC.  Value, key, and receiver are found on top
-  // of the frame.  All three are dropped.
-  Result CallKeyedStoreIC();
+  Result CallKeyedStoreIC(StrictModeFlag strict_mode);
 
   // Call call IC.  Function name, arguments, and receiver are found on top
   // of the frame and dropped by the call.
@@ -400,9 +404,11 @@ class VirtualFrame : public ZoneObject {
   // Uses kScratchRegister, emits appropriate relocation info.
   void EmitPush(Handle<Object> value);
 
+  inline bool ConstantPoolOverflowed();
+
   // Push an element on the virtual frame.
+  void Push(Handle<Object> value);
   inline void Push(Register reg, TypeInfo info = TypeInfo::Unknown());
-  inline void Push(Handle<Object> value);
   inline void Push(Smi* value);
 
   // Pushing a result invalidates it (its contents become owned by the

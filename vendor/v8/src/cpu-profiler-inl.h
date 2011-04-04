@@ -41,8 +41,8 @@ namespace internal {
 
 void CodeCreateEventRecord::UpdateCodeMap(CodeMap* code_map) {
   code_map->AddCode(start, entry, size);
-  if (sfi_address != NULL) {
-    entry->set_shared_id(code_map->GetSFITag(sfi_address));
+  if (shared != NULL) {
+    entry->set_shared_id(code_map->GetSharedId(shared));
   }
 }
 
@@ -57,7 +57,7 @@ void CodeDeleteEventRecord::UpdateCodeMap(CodeMap* code_map) {
 }
 
 
-void SFIMoveEventRecord::UpdateCodeMap(CodeMap* code_map) {
+void SharedFunctionInfoMoveEventRecord::UpdateCodeMap(CodeMap* code_map) {
   code_map->MoveCode(from, to);
 }
 
@@ -70,6 +70,7 @@ TickSampleEventRecord* TickSampleEventRecord::init(void* value) {
   // Init the required fields only.
   result->sample.pc = NULL;
   result->sample.frames_count = 0;
+  result->sample.has_external_callback = false;
   return result;
 }
 

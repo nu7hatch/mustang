@@ -89,6 +89,11 @@
 namespace v8 {
 namespace internal {
 
+// Constant pool marker.
+static const int kConstantPoolMarkerMask = 0xffe00000;
+static const int kConstantPoolMarker = 0x0c000000;
+static const int kConstantPoolLengthMask = 0x001ffff;
+
 // Number of registers in normal ARM mode.
 static const int kNumRegisters = 16;
 
@@ -385,9 +390,14 @@ enum VFPConversionMode {
   kDefaultRoundToZero = 1
 };
 
+// This mask does not include the "inexact" or "input denormal" cumulative
+// exceptions flags, because we usually don't want to check for it.
 static const uint32_t kVFPExceptionMask = 0xf;
+static const uint32_t kVFPInvalidOpExceptionBit = 1 << 0;
+static const uint32_t kVFPOverflowExceptionBit = 1 << 2;
+static const uint32_t kVFPUnderflowExceptionBit = 1 << 3;
+static const uint32_t kVFPInexactExceptionBit = 1 << 4;
 static const uint32_t kVFPFlushToZeroMask = 1 << 24;
-static const uint32_t kVFPInvalidExceptionBit = 1;
 
 static const uint32_t kVFPNConditionFlagBit = 1 << 31;
 static const uint32_t kVFPZConditionFlagBit = 1 << 30;
@@ -410,6 +420,11 @@ enum VFPRoundingMode {
 };
 
 static const uint32_t kVFPRoundingModeMask = 3 << 22;
+
+enum CheckForInexactConversion {
+  kCheckForInexactConversion,
+  kDontCheckForInexactConversion
+};
 
 // -----------------------------------------------------------------------------
 // Hints.

@@ -1,4 +1,4 @@
-// Copyright 2010 the V8 project authors. All rights reserved.
+// Copyright 2011 the V8 project authors. All rights reserved.
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
@@ -57,8 +57,8 @@
 //         - JSValue
 //         - JSMessageObject
 //       - ByteArray
-//       - PixelArray
 //       - ExternalArray
+//         - ExternalPixelArray
 //         - ExternalByteArray
 //         - ExternalUnsignedByteArray
 //         - ExternalShortArray
@@ -135,17 +135,35 @@ class PropertyDetails BASE_EMBEDDED {
   PropertyDetails(PropertyAttributes attributes,
                   PropertyType type,
                   int index = 0) {
+    ASSERT(type != EXTERNAL_ARRAY_TRANSITION);
     ASSERT(TypeField::is_valid(type));
     ASSERT(AttributesField::is_valid(attributes));
-    ASSERT(IndexField::is_valid(index));
+    ASSERT(StorageField::is_valid(index));
 
     value_ = TypeField::encode(type)
         | AttributesField::encode(attributes)
-        | IndexField::encode(index);
+        | StorageField::encode(index);
 
     ASSERT(type == this->type());
     ASSERT(attributes == this->attributes());
     ASSERT(index == this->index());
+  }
+
+  PropertyDetails(PropertyAttributes attributes,
+                  PropertyType type,
+                  ExternalArrayType array_type) {
+    ASSERT(type == EXTERNAL_ARRAY_TRANSITION);
+    ASSERT(TypeField::is_valid(type));
+    ASSERT(AttributesField::is_valid(attributes));
+    ASSERT(StorageField::is_valid(static_cast<int>(array_type)));
+
+    value_ = TypeField::encode(type)
+        | AttributesField::encode(attributes)
+        | StorageField::encode(static_cast<int>(array_type));
+
+    ASSERT(type == this->type());
+    ASSERT(attributes == this->attributes());
+    ASSERT(array_type == this->array_type());
   }
 
   // Conversion for storing details as Object*.
@@ -157,7 +175,8 @@ class PropertyDetails BASE_EMBEDDED {
   bool IsTransition() {
     PropertyType t = type();
     ASSERT(t != INTERCEPTOR);
-    return t == MAP_TRANSITION || t == CONSTANT_TRANSITION;
+    return t == MAP_TRANSITION || t == CONSTANT_TRANSITION ||
+        t == EXTERNAL_ARRAY_TRANSITION;
   }
 
   bool IsProperty() {
@@ -166,11 +185,18 @@ class PropertyDetails BASE_EMBEDDED {
 
   PropertyAttributes attributes() { return AttributesField::decode(value_); }
 
-  int index() { return IndexField::decode(value_); }
+  int index() { return StorageField::decode(value_); }
+
+  ExternalArrayType array_type() {
+    ASSERT(type() == EXTERNAL_ARRAY_TRANSITION);
+    return static_cast<ExternalArrayType>(StorageField::decode(value_));
+  }
 
   inline PropertyDetails AsDeleted();
 
-  static bool IsValidIndex(int index) { return IndexField::is_valid(index); }
+  static bool IsValidIndex(int index) {
+    return StorageField::is_valid(index);
+  }
 
   bool IsReadOnly() { return (attributes() & READ_ONLY) != 0; }
   bool IsDontDelete() { return (attributes() & DONT_DELETE) != 0; }
@@ -179,10 +205,10 @@ class PropertyDetails BASE_EMBEDDED {
 
   // Bit fields in value_ (type, shift, size). Must be public so the
   // constants can be embedded in generated code.
-  class TypeField:       public BitField<PropertyType,       0, 3> {};
-  class AttributesField: public BitField<PropertyAttributes, 3, 3> {};
-  class DeletedField:    public BitField<uint32_t,           6, 1> {};
-  class IndexField:      public BitField<uint32_t,           7, 32-7> {};
+  class TypeField:       public BitField<PropertyType,       0, 4> {};
+  class AttributesField: public BitField<PropertyAttributes, 4, 3> {};
+  class DeletedField:    public BitField<uint32_t,           7, 1> {};
+  class StorageField:    public BitField<uint32_t,           8, 32-8> {};
 
   static const int kInitialIndex = 1;
  private:
@@ -262,7 +288,6 @@ static const int kVariableSizeSentinel = 0;
   V(HEAP_NUMBER_TYPE)                                                          \
   V(PROXY_TYPE)                                                                \
   V(BYTE_ARRAY_TYPE)                                                           \
-  V(PIXEL_ARRAY_TYPE)                                                          \
   /* Note: the order of these external array */                                \
   /* types is relied upon in */                                                \
   /* Object::IsExternalArray(). */                                             \
@@ -273,6 +298,7 @@ static const int kVariableSizeSentinel = 0;
   V(EXTERNAL_INT_ARRAY_TYPE)                                                   \
   V(EXTERNAL_UNSIGNED_INT_ARRAY_TYPE)                                          \
   V(EXTERNAL_FLOAT_ARRAY_TYPE)                                                 \
+  V(EXTERNAL_PIXEL_ARRAY_TYPE)                                                 \
   V(FILLER_TYPE)                                                               \
                                                                                \
   V(ACCESSOR_INFO_TYPE)                                                        \
@@ -490,14 +516,14 @@ enum InstanceType {
   HEAP_NUMBER_TYPE,
   PROXY_TYPE,
   BYTE_ARRAY_TYPE,
-  PIXEL_ARRAY_TYPE,
   EXTERNAL_BYTE_ARRAY_TYPE,  // FIRST_EXTERNAL_ARRAY_TYPE
   EXTERNAL_UNSIGNED_BYTE_ARRAY_TYPE,
   EXTERNAL_SHORT_ARRAY_TYPE,
   EXTERNAL_UNSIGNED_SHORT_ARRAY_TYPE,
   EXTERNAL_INT_ARRAY_TYPE,
   EXTERNAL_UNSIGNED_INT_ARRAY_TYPE,
-  EXTERNAL_FLOAT_ARRAY_TYPE,  // LAST_EXTERNAL_ARRAY_TYPE
+  EXTERNAL_FLOAT_ARRAY_TYPE,
+  EXTERNAL_PIXEL_ARRAY_TYPE,  // LAST_EXTERNAL_ARRAY_TYPE
   FILLER_TYPE,  // LAST_DATA_TYPE
 
   // Structs.
@@ -544,7 +570,7 @@ enum InstanceType {
   LAST_STRING_TYPE = FIRST_NONSTRING_TYPE - 1,
   // Boundaries for testing for an external array.
   FIRST_EXTERNAL_ARRAY_TYPE = EXTERNAL_BYTE_ARRAY_TYPE,
-  LAST_EXTERNAL_ARRAY_TYPE = EXTERNAL_FLOAT_ARRAY_TYPE,
+  LAST_EXTERNAL_ARRAY_TYPE = EXTERNAL_PIXEL_ARRAY_TYPE,
   // Boundary for promotion to old data space/old pointer space.
   LAST_DATA_TYPE = FILLER_TYPE,
   // Boundaries for testing the type is a JavaScript "object".  Note that
@@ -557,6 +583,8 @@ enum InstanceType {
   FIRST_FUNCTION_CLASS_TYPE = JS_REGEXP_TYPE
 };
 
+static const int kExternalArrayTypeCount = LAST_EXTERNAL_ARRAY_TYPE -
+    FIRST_EXTERNAL_ARRAY_TYPE + 1;
 
 STATIC_CHECK(JS_OBJECT_TYPE == Internals::kJSObjectType);
 STATIC_CHECK(FIRST_NONSTRING_TYPE == Internals::kFirstNonstringType);
@@ -655,7 +683,6 @@ class MaybeObject BASE_EMBEDDED {
   V(SeqTwoByteString)                          \
   V(SeqAsciiString)                            \
                                                \
-  V(PixelArray)                                \
   V(ExternalArray)                             \
   V(ExternalByteArray)                         \
   V(ExternalUnsignedByteArray)                 \
@@ -664,6 +691,7 @@ class MaybeObject BASE_EMBEDDED {
   V(ExternalIntArray)                          \
   V(ExternalUnsignedIntArray)                  \
   V(ExternalFloatArray)                        \
+  V(ExternalPixelArray)                        \
   V(ByteArray)                                 \
   V(JSObject)                                  \
   V(JSContextExtensionObject)                  \
@@ -729,6 +757,7 @@ class Object : public MaybeObject {
   // Oddball testing.
   INLINE(bool IsUndefined());
   INLINE(bool IsNull());
+  INLINE(bool IsTheHole());  // Shadows MaybeObject's implementation.
   INLINE(bool IsTrue());
   INLINE(bool IsFalse());
   inline bool IsArgumentsMarker();
@@ -885,7 +914,7 @@ class Failure: public MaybeObject {
   enum Type {
     RETRY_AFTER_GC = 0,
     EXCEPTION = 1,       // Returning this marker tells the real exception
-                         // is in Top::pending_exception.
+                         // is in Isolate::pending_exception.
     INTERNAL_ERROR = 2,
     OUT_OF_MEMORY_EXCEPTION = 3
   };
@@ -1072,6 +1101,14 @@ class HeapObject: public Object {
   // necessarily contain a map pointer.
   inline MapWord map_word();
   inline void set_map_word(MapWord map_word);
+
+  // The Heap the object was allocated in. Used also to access Isolate.
+  // This method can not be used during GC, it ASSERTs this.
+  inline Heap* GetHeap();
+  // Convenience method to get current isolate. This method can be
+  // accessed only when its result is the same as
+  // Isolate::Current(), it ASSERTs this. See also comment for GetHeap.
+  inline Isolate* GetIsolate();
 
   // Converts an address to a HeapObject pointer.
   static inline HeapObject* FromAddress(Address address);
@@ -1297,14 +1334,14 @@ class JSObject: public HeapObject {
     FAST_ELEMENTS,
     // All the kinds below are "slow".
     DICTIONARY_ELEMENTS,
-    PIXEL_ELEMENTS,
     EXTERNAL_BYTE_ELEMENTS,
     EXTERNAL_UNSIGNED_BYTE_ELEMENTS,
     EXTERNAL_SHORT_ELEMENTS,
     EXTERNAL_UNSIGNED_SHORT_ELEMENTS,
     EXTERNAL_INT_ELEMENTS,
     EXTERNAL_UNSIGNED_INT_ELEMENTS,
-    EXTERNAL_FLOAT_ELEMENTS
+    EXTERNAL_FLOAT_ELEMENTS,
+    EXTERNAL_PIXEL_ELEMENTS
   };
 
   // [properties]: Backing storage for properties.
@@ -1329,15 +1366,14 @@ class JSObject: public HeapObject {
   // few objects and so before writing to any element the array must
   // be copied. Use EnsureWritableFastElements in this case.
   //
-  // In the slow mode elements is either a NumberDictionary or a
-  // PixelArray or an ExternalArray.
+  // In the slow mode elements is either a NumberDictionary or an ExternalArray.
   DECL_ACCESSORS(elements, HeapObject)
   inline void initialize_elements();
   MUST_USE_RESULT inline MaybeObject* ResetElements();
   inline ElementsKind GetElementsKind();
   inline bool HasFastElements();
   inline bool HasDictionaryElements();
-  inline bool HasPixelElements();
+  inline bool HasExternalPixelElements();
   inline bool HasExternalArrayElements();
   inline bool HasExternalByteElements();
   inline bool HasExternalUnsignedByteElements();
@@ -1361,11 +1397,13 @@ class JSObject: public HeapObject {
 
   MUST_USE_RESULT MaybeObject* SetProperty(String* key,
                                            Object* value,
-                                           PropertyAttributes attributes);
+                                           PropertyAttributes attributes,
+                                           StrictModeFlag strict_mode);
   MUST_USE_RESULT MaybeObject* SetProperty(LookupResult* result,
                                            String* key,
                                            Object* value,
-                                           PropertyAttributes attributes);
+                                           PropertyAttributes attributes,
+                                           StrictModeFlag strict_mode);
   MUST_USE_RESULT MaybeObject* SetPropertyWithFailedAccessCheck(
       LookupResult* result,
       String* name,
@@ -1380,11 +1418,13 @@ class JSObject: public HeapObject {
   MUST_USE_RESULT MaybeObject* SetPropertyWithInterceptor(
       String* name,
       Object* value,
-      PropertyAttributes attributes);
+      PropertyAttributes attributes,
+      StrictModeFlag strict_mode);
   MUST_USE_RESULT MaybeObject* SetPropertyPostInterceptor(
       String* name,
       Object* value,
-      PropertyAttributes attributes);
+      PropertyAttributes attributes,
+      StrictModeFlag strict_mode);
   MUST_USE_RESULT MaybeObject* SetLocalPropertyIgnoreAttributes(
       String* key,
       Object* value,
@@ -1511,6 +1551,12 @@ class JSObject: public HeapObject {
   inline bool HasElement(uint32_t index);
   bool HasElementWithReceiver(JSObject* receiver, uint32_t index);
 
+  // Computes the new capacity when expanding the elements of a JSObject.
+  static int NewElementsCapacity(int old_capacity) {
+    // (old_capacity + 50%) + 16
+    return old_capacity + (old_capacity >> 1) + 16;
+  }
+
   // Tells whether the index'th element is present and how it is stored.
   enum LocalElementType {
     // There is no element with given index.
@@ -1536,12 +1582,14 @@ class JSObject: public HeapObject {
 
   MUST_USE_RESULT MaybeObject* SetFastElement(uint32_t index,
                                               Object* value,
+                                              StrictModeFlag strict_mode,
                                               bool check_prototype = true);
 
   // Set the index'th array element.
   // A Failure object is returned if GC is needed.
   MUST_USE_RESULT MaybeObject* SetElement(uint32_t index,
                                           Object* value,
+                                          StrictModeFlag strict_mode,
                                           bool check_prototype = true);
 
   // Returns the index'th element.
@@ -1576,6 +1624,7 @@ class JSObject: public HeapObject {
   inline int GetHeaderSize();
 
   inline int GetInternalFieldCount();
+  inline int GetInternalFieldOffset(int index);
   inline Object* GetInternalField(int index);
   inline void SetInternalField(int index, Object* value);
 
@@ -1670,7 +1719,8 @@ class JSObject: public HeapObject {
   // Add a property to an object.
   MUST_USE_RESULT MaybeObject* AddProperty(String* name,
                                            Object* value,
-                                           PropertyAttributes attributes);
+                                           PropertyAttributes attributes,
+                                           StrictModeFlag strict_mode);
 
   // Convert the object to use the canonical dictionary
   // representation. If the object is expected to have additional properties
@@ -1693,6 +1743,7 @@ class JSObject: public HeapObject {
   inline Object* FastPropertyAtPut(int index, Object* value);
 
   // Access to in object properties.
+  inline int GetInObjectPropertyOffset(int index);
   inline Object* InObjectPropertyAt(int index);
   inline Object* InObjectPropertyAtPut(int index,
                                        Object* value,
@@ -1801,12 +1852,15 @@ class JSObject: public HeapObject {
                                       uint32_t index,
                                       Object* value,
                                       JSObject* holder);
-  MUST_USE_RESULT MaybeObject* SetElementWithInterceptor(uint32_t index,
-                                                         Object* value,
-                                                         bool check_prototype);
+  MUST_USE_RESULT MaybeObject* SetElementWithInterceptor(
+      uint32_t index,
+      Object* value,
+      StrictModeFlag strict_mode,
+      bool check_prototype);
   MUST_USE_RESULT MaybeObject* SetElementWithoutInterceptor(
       uint32_t index,
       Object* value,
+      StrictModeFlag strict_mode,
       bool check_prototype);
 
   MaybeObject* GetElementPostInterceptor(Object* receiver, uint32_t index);
@@ -1876,13 +1930,18 @@ class FixedArray: public HeapObject {
 
   // Setters for frequently used oddballs located in old space.
   inline void set_undefined(int index);
+  // TODO(isolates): duplicate.
+  inline void set_undefined(Heap* heap, int index);
   inline void set_null(int index);
+  // TODO(isolates): duplicate.
+  inline void set_null(Heap* heap, int index);
   inline void set_the_hole(int index);
 
   // Setters with less debug checks for the GC to use.
   inline void set_unchecked(int index, Smi* value);
-  inline void set_null_unchecked(int index);
-  inline void set_unchecked(int index, Object* value, WriteBarrierMode mode);
+  inline void set_null_unchecked(Heap* heap, int index);
+  inline void set_unchecked(Heap* heap, int index, Object* value,
+                            WriteBarrierMode mode);
 
   // Gives access to raw memory which stores the array's data.
   inline Object** data_start();
@@ -1977,7 +2036,9 @@ class DescriptorArray: public FixedArray {
 
   // Returns the number of descriptors in the array.
   int number_of_descriptors() {
-    return IsEmpty() ? 0 : length() - kFirstIndex;
+    ASSERT(length() > kFirstIndex || IsEmpty());
+    int len = length();
+    return len <= kFirstIndex ? 0 : len - kFirstIndex;
   }
 
   int NextEnumerationIndex() {
@@ -2269,7 +2330,8 @@ class HashTable: public FixedArray {
       (FixedArray::kMaxLength - kElementsStartOffset) / kEntrySize;
 
   // Find entry for key otherwise return kNotFound.
-  int FindEntry(Key key);
+  inline int FindEntry(Key key);
+  int FindEntry(Isolate* isolate, Key key);
 
  protected:
 
@@ -2341,16 +2403,16 @@ class HashTableKey {
 
 class SymbolTableShape {
  public:
-  static bool IsMatch(HashTableKey* key, Object* value) {
+  static inline bool IsMatch(HashTableKey* key, Object* value) {
     return key->IsMatch(value);
   }
-  static uint32_t Hash(HashTableKey* key) {
+  static inline uint32_t Hash(HashTableKey* key) {
     return key->Hash();
   }
-  static uint32_t HashForObject(HashTableKey* key, Object* object) {
+  static inline uint32_t HashForObject(HashTableKey* key, Object* object) {
     return key->HashForObject(object);
   }
-  MUST_USE_RESULT static MaybeObject* AsObject(HashTableKey* key) {
+  MUST_USE_RESULT static inline MaybeObject* AsObject(HashTableKey* key) {
     return key->AsObject();
   }
 
@@ -2393,18 +2455,18 @@ class SymbolTable: public HashTable<SymbolTableShape, HashTableKey*> {
 
 class MapCacheShape {
  public:
-  static bool IsMatch(HashTableKey* key, Object* value) {
+  static inline bool IsMatch(HashTableKey* key, Object* value) {
     return key->IsMatch(value);
   }
-  static uint32_t Hash(HashTableKey* key) {
+  static inline uint32_t Hash(HashTableKey* key) {
     return key->Hash();
   }
 
-  static uint32_t HashForObject(HashTableKey* key, Object* object) {
+  static inline uint32_t HashForObject(HashTableKey* key, Object* object) {
     return key->HashForObject(object);
   }
 
-  MUST_USE_RESULT static MaybeObject* AsObject(HashTableKey* key) {
+  MUST_USE_RESULT static inline MaybeObject* AsObject(HashTableKey* key) {
     return key->AsObject();
   }
 
@@ -2443,13 +2505,18 @@ class Dictionary: public HashTable<Shape, Key> {
   }
 
   // Set the value for entry.
-  void ValueAtPut(int entry, Object* value) {
+  // Returns false if the put wasn't performed due to property being read only.
+  // Returns true on successful put.
+  bool ValueAtPut(int entry, Object* value) {
     // Check that this value can actually be written.
     PropertyDetails details = DetailsAt(entry);
     // If a value has not been initilized we allow writing to it even if
     // it is read only (a declared const that has not been initialized).
-    if (details.IsReadOnly() && !ValueAt(entry)->IsTheHole()) return;
-    this->set(HashTable<Shape, Key>::EntryToIndex(entry)+1, value);
+    if (details.IsReadOnly() && !ValueAt(entry)->IsTheHole()) {
+      return false;
+    }
+    this->set(HashTable<Shape, Key>::EntryToIndex(entry) + 1, value);
+    return true;
   }
 
   // Returns the property details for the property at entry.
@@ -2755,59 +2822,6 @@ class ByteArray: public HeapObject {
 };
 
 
-// A PixelArray represents a fixed-size byte array with special semantics
-// used for implementing the CanvasPixelArray object. Please see the
-// specification at:
-// http://www.whatwg.org/specs/web-apps/current-work/
-//                      multipage/the-canvas-element.html#canvaspixelarray
-// In particular, write access clamps the value written to 0 or 255 if the
-// value written is outside this range.
-class PixelArray: public HeapObject {
- public:
-  // [length]: length of the array.
-  inline int length();
-  inline void set_length(int value);
-
-  // [external_pointer]: The pointer to the external memory area backing this
-  // pixel array.
-  DECL_ACCESSORS(external_pointer, uint8_t)  // Pointer to the data store.
-
-  // Setter and getter.
-  inline uint8_t get(int index);
-  inline void set(int index, uint8_t value);
-
-  // This accessor applies the correct conversion from Smi, HeapNumber and
-  // undefined and clamps the converted value between 0 and 255.
-  Object* SetValue(uint32_t index, Object* value);
-
-  // Casting.
-  static inline PixelArray* cast(Object* obj);
-
-#ifdef OBJECT_PRINT
-  inline void PixelArrayPrint() {
-    PixelArrayPrint(stdout);
-  }
-  void PixelArrayPrint(FILE* out);
-#endif
-#ifdef DEBUG
-  void PixelArrayVerify();
-#endif  // DEBUG
-
-  // Maximal acceptable length for a pixel array.
-  static const int kMaxLength = 0x3fffffff;
-
-  // PixelArray headers are not quadword aligned.
-  static const int kLengthOffset = HeapObject::kHeaderSize;
-  static const int kExternalPointerOffset =
-      POINTER_SIZE_ALIGN(kLengthOffset + kIntSize);
-  static const int kHeaderSize = kExternalPointerOffset + kPointerSize;
-  static const int kAlignedSize = OBJECT_POINTER_ALIGN(kHeaderSize);
-
- private:
-  DISALLOW_IMPLICIT_CONSTRUCTORS(PixelArray);
-};
-
-
 // An ExternalArray represents a fixed-size array of primitive values
 // which live outside the JavaScript heap. Its subclasses are used to
 // implement the CanvasArray types being defined in the WebGL
@@ -2844,6 +2858,44 @@ class ExternalArray: public HeapObject {
 
  private:
   DISALLOW_IMPLICIT_CONSTRUCTORS(ExternalArray);
+};
+
+
+// A ExternalPixelArray represents a fixed-size byte array with special
+// semantics used for implementing the CanvasPixelArray object. Please see the
+// specification at:
+
+// http://www.whatwg.org/specs/web-apps/current-work/
+//                      multipage/the-canvas-element.html#canvaspixelarray
+// In particular, write access clamps the value written to 0 or 255 if the
+// value written is outside this range.
+class ExternalPixelArray: public ExternalArray {
+ public:
+  inline uint8_t* external_pixel_pointer();
+
+  // Setter and getter.
+  inline uint8_t get(int index);
+  inline void set(int index, uint8_t value);
+
+  // This accessor applies the correct conversion from Smi, HeapNumber and
+  // undefined and clamps the converted value between 0 and 255.
+  Object* SetValue(uint32_t index, Object* value);
+
+  // Casting.
+  static inline ExternalPixelArray* cast(Object* obj);
+
+#ifdef OBJECT_PRINT
+  inline void ExternalPixelArrayPrint() {
+    ExternalPixelArrayPrint(stdout);
+  }
+  void ExternalPixelArrayPrint(FILE* out);
+#endif
+#ifdef DEBUG
+  void ExternalPixelArrayVerify();
+#endif  // DEBUG
+
+ private:
+  DISALLOW_IMPLICIT_CONSTRUCTORS(ExternalPixelArray);
 };
 
 
@@ -3181,10 +3233,12 @@ class Code: public HeapObject {
     BUILTIN,
     LOAD_IC,
     KEYED_LOAD_IC,
+    KEYED_EXTERNAL_ARRAY_LOAD_IC,
     CALL_IC,
     KEYED_CALL_IC,
     STORE_IC,
     KEYED_STORE_IC,
+    KEYED_EXTERNAL_ARRAY_STORE_IC,
     BINARY_OP_IC,
     TYPE_RECORDING_BINARY_OP_IC,
     COMPARE_IC,
@@ -3259,6 +3313,12 @@ class Code: public HeapObject {
     return kind() == TYPE_RECORDING_BINARY_OP_IC;
   }
   inline bool is_compare_ic_stub() { return kind() == COMPARE_IC; }
+  inline bool is_external_array_load_stub() {
+    return kind() == KEYED_EXTERNAL_ARRAY_LOAD_IC;
+  }
+  inline bool is_external_array_store_stub() {
+    return kind() == KEYED_EXTERNAL_ARRAY_STORE_IC;
+  }
 
   // [major_key]: For kind STUB or BINARY_OP_IC, the major key.
   inline int major_key();
@@ -3299,6 +3359,12 @@ class Code: public HeapObject {
   // receiver is valid for the given call.
   inline CheckType check_type();
   inline void set_check_type(CheckType value);
+
+  // [external array type]: For kind KEYED_EXTERNAL_ARRAY_LOAD_IC and
+  // KEYED_EXTERNAL_ARRAY_STORE_IC, identifies the type of external
+  // array that the code stub is specialized for.
+  inline ExternalArrayType external_array_type();
+  inline void set_external_array_type(ExternalArrayType value);
 
   // [binary op type]: For all BINARY_OP_IC.
   inline byte binary_op_type();
@@ -3410,7 +3476,7 @@ class Code: public HeapObject {
   inline void CodeIterateBody(ObjectVisitor* v);
 
   template<typename StaticVisitor>
-  inline void CodeIterateBody();
+  inline void CodeIterateBody(Heap* heap);
 #ifdef OBJECT_PRINT
   inline void CodePrint() {
     CodePrint(stdout);
@@ -3420,6 +3486,10 @@ class Code: public HeapObject {
 #ifdef DEBUG
   void CodeVerify();
 #endif
+
+  // Returns the isolate/heap this code object belongs to.
+  inline Isolate* isolate();
+  inline Heap* heap();
 
   // Max loop nesting marker used to postpose OSR. We don't take loop
   // nesting that is deeper than 5 levels into account.
@@ -3448,6 +3518,7 @@ class Code: public HeapObject {
   static const int kOptimizableOffset = kKindSpecificFlagsOffset;
   static const int kStackSlotsOffset = kKindSpecificFlagsOffset;
   static const int kCheckTypeOffset = kKindSpecificFlagsOffset;
+  static const int kExternalArrayTypeOffset = kKindSpecificFlagsOffset;
 
   static const int kCompareStateOffset = kStubMajorKeyOffset + 1;
   static const int kBinaryOpTypeOffset = kStubMajorKeyOffset + 1;
@@ -3464,18 +3535,18 @@ class Code: public HeapObject {
   static const int kFlagsICStateShift        = 0;
   static const int kFlagsICInLoopShift       = 3;
   static const int kFlagsTypeShift           = 4;
-  static const int kFlagsKindShift           = 7;
-  static const int kFlagsICHolderShift       = 11;
-  static const int kFlagsExtraICStateShift   = 12;
-  static const int kFlagsArgumentsCountShift = 14;
+  static const int kFlagsKindShift           = 8;
+  static const int kFlagsICHolderShift       = 12;
+  static const int kFlagsExtraICStateShift   = 13;
+  static const int kFlagsArgumentsCountShift = 15;
 
   static const int kFlagsICStateMask        = 0x00000007;  // 00000000111
   static const int kFlagsICInLoopMask       = 0x00000008;  // 00000001000
-  static const int kFlagsTypeMask           = 0x00000070;  // 00001110000
-  static const int kFlagsKindMask           = 0x00000780;  // 11110000000
-  static const int kFlagsCacheInPrototypeMapMask = 0x00000800;
-  static const int kFlagsExtraICStateMask   = 0x00003000;
-  static const int kFlagsArgumentsCountMask = 0xFFFFC000;
+  static const int kFlagsTypeMask           = 0x000000F0;  // 00001110000
+  static const int kFlagsKindMask           = 0x00000F00;  // 11110000000
+  static const int kFlagsCacheInPrototypeMapMask = 0x00001000;
+  static const int kFlagsExtraICStateMask   = 0x00006000;
+  static const int kFlagsArgumentsCountMask = 0xFFFF8000;
 
   static const int kFlagsNotUsedInLookup =
       (kFlagsICInLoopMask | kFlagsTypeMask | kFlagsCacheInPrototypeMapMask);
@@ -3605,16 +3676,16 @@ class Map: public HeapObject {
   }
 
   // Tells whether an instance has pixel array elements.
-  inline void set_has_pixel_array_elements(bool value) {
+  inline void set_has_external_array_elements(bool value) {
     if (value) {
-      set_bit_field2(bit_field2() | (1 << kHasPixelArrayElements));
+      set_bit_field2(bit_field2() | (1 << kHasExternalArrayElements));
     } else {
-      set_bit_field2(bit_field2() & ~(1 << kHasPixelArrayElements));
+      set_bit_field2(bit_field2() & ~(1 << kHasExternalArrayElements));
     }
   }
 
-  inline bool has_pixel_array_elements() {
-    return ((1 << kHasPixelArrayElements) & bit_field2()) != 0;
+  inline bool has_external_array_elements() {
+    return ((1 << kHasExternalArrayElements) & bit_field2()) != 0;
   }
 
   // Tells whether the map is attached to SharedFunctionInfo
@@ -3675,10 +3746,11 @@ class Map: public HeapObject {
   // from the descriptors and the fast elements bit cleared.
   MUST_USE_RESULT inline MaybeObject* GetSlowElementsMap();
 
-  // Returns this map if it has the pixel array elements bit is set, otherwise
-  // returns a copy of the map, with all transitions dropped from the
-  // descriptors and the pixel array elements bit set.
-  MUST_USE_RESULT inline MaybeObject* GetPixelArrayElementsMap();
+  // Returns a new map with all transitions dropped from the descriptors and the
+  // external array elements bit set.
+  MUST_USE_RESULT MaybeObject* GetExternalArrayElementsMap(
+      ExternalArrayType array_type,
+      bool safe_to_add_transition);
 
   // Returns the property index for name (only valid for FAST MODE).
   int PropertyIndexFor(String* name);
@@ -3698,7 +3770,7 @@ class Map: public HeapObject {
   // Code cache operations.
 
   // Clears the code cache.
-  inline void ClearCodeCache();
+  inline void ClearCodeCache(Heap* heap);
 
   // Update code cache.
   MUST_USE_RESULT MaybeObject* UpdateCodeCache(String* name, Code* code);
@@ -3722,7 +3794,7 @@ class Map: public HeapObject {
   // Also, restore the original prototype on the targets of these
   // transitions, so that we do not process this map again while
   // following back pointers.
-  void ClearNonLiveTransitions(Object* real_prototype);
+  void ClearNonLiveTransitions(Heap* heap, Object* real_prototype);
 
   // Dispatched behavior.
 #ifdef OBJECT_PRINT
@@ -3738,6 +3810,10 @@ class Map: public HeapObject {
 
   inline int visitor_id();
   inline void set_visitor_id(int visitor_id);
+
+  // Returns the isolate/heap this map belongs to.
+  inline Isolate* isolate();
+  inline Heap* heap();
 
   typedef void (*TraverseCallback)(Map* map, void* data);
 
@@ -3798,7 +3874,7 @@ class Map: public HeapObject {
   static const int kStringWrapperSafeForDefaultValueOf = 3;
   static const int kAttachedToSharedFunctionInfo = 4;
   static const int kIsShared = 5;
-  static const int kHasPixelArrayElements = 6;
+  static const int kHasExternalArrayElements = 6;
 
   // Layout of the default cache. It holds alternating name and code objects.
   static const int kCodeCacheEntrySize = 2;
@@ -4183,9 +4259,6 @@ class SharedFunctionInfo: public HeapObject {
   // this.x = y; where y is either a constant or refers to an argument.
   inline bool has_only_simple_this_property_assignments();
 
-  inline bool try_full_codegen();
-  inline void set_try_full_codegen(bool flag);
-
   // Indicates if this function can be lazy compiled.
   // This is used to determine if we can safely flush code from a function
   // when doing GC if we expect that the function will no longer be used.
@@ -4385,13 +4458,12 @@ class SharedFunctionInfo: public HeapObject {
 
   // Bit positions in compiler_hints.
   static const int kHasOnlySimpleThisPropertyAssignments = 0;
-  static const int kTryFullCodegen = 1;
-  static const int kAllowLazyCompilation = 2;
-  static const int kLiveObjectsMayExist = 3;
-  static const int kCodeAgeShift = 4;
+  static const int kAllowLazyCompilation = 1;
+  static const int kLiveObjectsMayExist = 2;
+  static const int kCodeAgeShift = 3;
   static const int kCodeAgeMask = 0x7;
-  static const int kOptimizationDisabled = 7;
-  static const int kStrictModeFunction = 8;
+  static const int kOptimizationDisabled = 6;
+  static const int kStrictModeFunction = 7;
 
  private:
 #if V8_HOST_ARCH_32_BIT
@@ -5136,6 +5208,11 @@ class StringHasher {
 };
 
 
+// Calculates string hash.
+template <typename schar>
+inline uint32_t HashSequentialString(const schar* chars, int length);
+
+
 // The characteristics of a string are stored in its map.  Retrieving these
 // few bits of information is moderately expensive, involving two memory
 // loads where the second is dependent on the first.  To improve efficiency
@@ -5779,11 +5856,8 @@ class ExternalTwoByteString: public ExternalString {
 // iterating or updating after gc.
 class Relocatable BASE_EMBEDDED {
  public:
-  inline Relocatable() : prev_(top_) { top_ = this; }
-  virtual ~Relocatable() {
-    ASSERT_EQ(top_, this);
-    top_ = prev_;
-  }
+  explicit inline Relocatable(Isolate* isolate);
+  inline virtual ~Relocatable();
   virtual void IterateInstance(ObjectVisitor* v) { }
   virtual void PostGarbageCollection() { }
 
@@ -5795,7 +5869,7 @@ class Relocatable BASE_EMBEDDED {
   static void Iterate(ObjectVisitor* v, Relocatable* top);
   static char* Iterate(ObjectVisitor* v, char* t);
  private:
-  static Relocatable* top_;
+  Isolate* isolate_;
   Relocatable* prev_;
 };
 
@@ -5805,8 +5879,8 @@ class Relocatable BASE_EMBEDDED {
 // must be valid as long as the reader is being used.
 class FlatStringReader : public Relocatable {
  public:
-  explicit FlatStringReader(Handle<String> str);
-  explicit FlatStringReader(Vector<const char> input);
+  FlatStringReader(Isolate* isolate, Handle<String> str);
+  FlatStringReader(Isolate* isolate, Vector<const char> input);
   void PostGarbageCollection();
   inline uc32 Get(int index);
   int length() { return length_; }
@@ -5869,6 +5943,9 @@ class Oddball: public HeapObject {
   // [to_number]: Cached to_number computed at startup.
   DECL_ACCESSORS(to_number, Object)
 
+  inline byte kind();
+  inline void set_kind(byte kind);
+
   // Casting.
   static inline Oddball* cast(Object* obj);
 
@@ -5879,12 +5956,23 @@ class Oddball: public HeapObject {
 
   // Initialize the fields.
   MUST_USE_RESULT MaybeObject* Initialize(const char* to_string,
-                                          Object* to_number);
+                                          Object* to_number,
+                                          byte kind);
 
   // Layout description.
   static const int kToStringOffset = HeapObject::kHeaderSize;
   static const int kToNumberOffset = kToStringOffset + kPointerSize;
-  static const int kSize = kToNumberOffset + kPointerSize;
+  static const int kKindOffset = kToNumberOffset + kPointerSize;
+  static const int kSize = kKindOffset + kPointerSize;
+
+  static const byte kFalse = 0;
+  static const byte kTrue = 1;
+  static const byte kNotBooleanMask = ~1;
+  static const byte kTheHole = 2;
+  static const byte kNull = 3;
+  static const byte kArgumentMarker = 4;
+  static const byte kUndefined = 5;
+  static const byte kOther = 6;
 
   typedef FixedBodyDescriptor<kToStringOffset,
                               kToNumberOffset + kPointerSize,
@@ -5920,6 +6008,10 @@ class JSGlobalPropertyCell: public HeapObject {
   typedef FixedBodyDescriptor<kValueOffset,
                               kValueOffset + kPointerSize,
                               kSize> BodyDescriptor;
+
+  // Returns the isolate/heap this cell object belongs to.
+  inline Isolate* isolate();
+  inline Heap* heap();
 
  private:
   DISALLOW_IMPLICIT_CONSTRUCTORS(JSGlobalPropertyCell);
@@ -6516,6 +6608,9 @@ class ObjectVisitor BASE_EMBEDDED {
   inline void VisitExternalReference(Address* p) {
     VisitExternalReferences(p, p + 1);
   }
+
+  // Visits a handle that has an embedder-assigned class ID.
+  virtual void VisitEmbedderReference(Object** p, uint16_t class_id) {}
 
 #ifdef DEBUG
   // Intended for serialization/deserialization checking: insert, or

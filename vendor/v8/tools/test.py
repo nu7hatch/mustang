@@ -340,6 +340,9 @@ class TestCase(object):
   def IsNegative(self):
     return False
 
+  def TestsIsolates(self):
+    return False
+
   def CompareTime(self, other):
     return cmp(other.duration, self.duration)
 
@@ -371,8 +374,12 @@ class TestCase(object):
   def AfterRun(self, result):
     pass
 
+  def GetCustomFlags(self, mode):
+    return None
+
   def Run(self):
     self.BeforeRun()
+    result = "exception"
     try:
       result = self.RunCommand(self.GetCommand())
     finally:
@@ -499,11 +506,19 @@ def PrintError(str):
 
 
 def CheckedUnlink(name):
-  try:
-    os.unlink(name)
-  except OSError, e:
-    PrintError("os.unlink() " + str(e))
-
+  # On Windows, when run with -jN in parallel processes,
+  # OS often fails to unlink the temp file. Not sure why.
+  # Need to retry.
+  # Idea from https://bugs.webkit.org/attachment.cgi?id=75982&action=prettypatch
+  retry_count = 0
+  while retry_count < 30:
+    try:
+      os.unlink(name)
+      return
+    except OSError, e:
+      retry_count += 1;
+      time.sleep(retry_count * 0.1)
+  PrintError("os.unlink() " + str(e))
 
 def Execute(args, context, timeout=None):
   (fd_out, outname) = tempfile.mkstemp()
@@ -569,7 +584,9 @@ class TestSuite(object):
 
 # Use this to run several variants of the tests, e.g.:
 # VARIANT_FLAGS = [[], ['--always_compact', '--noflush_code']]
-VARIANT_FLAGS = [[], ['--stress-opt', '--always-opt'], ['--nocrankshaft']]
+VARIANT_FLAGS = [[],
+                 ['--stress-opt', '--always-opt'],
+                 ['--nocrankshaft']]
 
 
 class TestRepository(TestSuite):
@@ -600,7 +617,7 @@ class TestRepository(TestSuite):
 
   def AddTestsToList(self, result, current_path, path, context, mode):
     for v in VARIANT_FLAGS:
-      tests = self.GetConfiguration(context).ListTests(current_path, path, mode)
+      tests = self.GetConfiguration(context).ListTests(current_path, path, mode, v)
       for t in tests: t.variant_flags = v
       result += tests
 
@@ -623,7 +640,7 @@ class LiteralTestSuite(TestSuite):
         result += test.GetBuildRequirements(rest, context)
     return result
 
-  def ListTests(self, current_path, path, context, mode):
+  def ListTests(self, current_path, path, context, mode, variant_flags):
     (name, rest) = CarCdr(path)
     result = [ ]
     for test in self.tests:
@@ -671,7 +688,10 @@ class Context(object):
     return [self.GetVm(mode)] + self.GetVmFlags(testcase, mode)
 
   def GetVmFlags(self, testcase, mode):
-    return testcase.variant_flags + FLAGS[mode]
+    flags = testcase.GetCustomFlags(mode)
+    if flags is None:
+      flags = FLAGS[mode]
+    return testcase.variant_flags + flags
 
   def GetTimeout(self, testcase, mode):
     result = self.timeout * TIMEOUT_SCALEFACTOR[mode]
@@ -1007,6 +1027,9 @@ class ClassifiedTest(object):
     self.case = case
     self.outcomes = outcomes
 
+  def TestsIsolates(self):
+    return self.case.TestsIsolates()
+
 
 class Configuration(object):
   """The parsed contents of a configuration file"""
@@ -1166,6 +1189,7 @@ def BuildOptions():
   result.add_option("--no-suppress-dialogs", help="Display Windows dialogs for crashing tests",
         dest="suppress_dialogs", action="store_false")
   result.add_option("--shell", help="Path to V8 shell", default="shell")
+  result.add_option("--isolates", help="Whether to test isolates", default=False, action="store_true")
   result.add_option("--store-unexpected-output",
       help="Store the temporary JS files from tests that fails",
       dest="store_unexpected_output", default=True, action="store_true")
@@ -1295,7 +1319,7 @@ def GetSpecialCommandProcessor(value):
     return ExpandCommand
 
 
-BUILT_IN_TESTS = ['mjsunit', 'cctest', 'message']
+BUILT_IN_TESTS = ['mjsunit', 'cctest', 'message', 'preparser']
 
 
 def GetSuites(test_root):
@@ -1388,9 +1412,6 @@ def Main():
   globally_unused_rules = None
   for path in paths:
     for mode in options.mode:
-      if not exists(context.GetVm(mode)):
-        print "Can't find shell executable: '%s'" % context.GetVm(mode)
-        continue
       env = {
         'mode': mode,
         'system': utils.GuessOS(),
@@ -1398,7 +1419,7 @@ def Main():
         'simulator': options.simulator,
         'crankshaft': options.crankshaft
       }
-      test_list = root.ListTests([], path, context, mode)
+      test_list = root.ListTests([], path, context, mode, [])
       unclassified_tests += test_list
       (cases, unused_rules, all_outcomes) = config.ClassifyTests(test_list, env)
       if globally_unused_rules is None:
@@ -1432,6 +1453,8 @@ def Main():
   def DoSkip(case):
     return SKIP in case.outcomes or SLOW in case.outcomes
   cases_to_run = [ c for c in all_cases if not DoSkip(c) ]
+  if not options.isolates:
+    cases_to_run = [c for c in cases_to_run if not c.TestsIsolates()]
   if len(cases_to_run) == 0:
     print "No tests to run."
     return 0

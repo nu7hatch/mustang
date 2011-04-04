@@ -44,9 +44,10 @@
 namespace v8 {
 namespace internal {
 
-// Safe default is no features.
+#ifdef DEBUG
+bool CpuFeatures::initialized_ = false;
+#endif
 unsigned CpuFeatures::supported_ = 0;
-unsigned CpuFeatures::enabled_ = 0;
 unsigned CpuFeatures::found_by_runtime_probing_ = 0;
 
 
@@ -70,7 +71,11 @@ static uint64_t CpuFeaturesImpliedByCompiler() {
 #endif  // def __arm__
 
 
-void CpuFeatures::Probe(bool portable) {
+void CpuFeatures::Probe() {
+  ASSERT(!initialized_);
+#ifdef DEBUG
+  initialized_ = true;
+#endif
 #ifndef __arm__
   // For the simulator=arm build, use VFP when FLAG_enable_vfp3 is enabled.
   if (FLAG_enable_vfp3) {
@@ -81,7 +86,7 @@ void CpuFeatures::Probe(bool portable) {
     supported_ |= 1u << ARMv7;
   }
 #else  // def __arm__
-  if (portable && Serializer::enabled()) {
+  if (Serializer::enabled()) {
     supported_ |= OS::CpuFeaturesImpliedByPlatform();
     supported_ |= CpuFeaturesImpliedByCompiler();
     return;  // No features if we might serialize.
@@ -98,8 +103,6 @@ void CpuFeatures::Probe(bool portable) {
     supported_ |= 1u << ARMv7;
     found_by_runtime_probing_ |= 1u << ARMv7;
   }
-
-  if (!portable) found_by_runtime_probing_ = 0;
 #endif
 }
 
@@ -148,7 +151,7 @@ Operand::Operand(Handle<Object> handle) {
   rm_ = no_reg;
   // Verify all Objects referred by code are NOT in new space.
   Object* obj = *handle;
-  ASSERT(!Heap::InNewSpace(obj));
+  ASSERT(!HEAP->InNewSpace(obj));
   if (obj->IsHeapObject()) {
     imm32_ = reinterpret_cast<intptr_t>(handle.location());
     rmode_ = RelocInfo::EMBEDDED_OBJECT;
@@ -266,21 +269,22 @@ const Instr kLdrStrOffsetMask = 0x00000fff;
 
 // Spare buffer.
 static const int kMinimalBufferSize = 4*KB;
-static byte* spare_buffer_ = NULL;
 
 
-Assembler::Assembler(void* buffer, int buffer_size)
-    : positions_recorder_(this),
-      allow_peephole_optimization_(false) {
+Assembler::Assembler(Isolate* arg_isolate, void* buffer, int buffer_size)
+    : AssemblerBase(arg_isolate),
+      positions_recorder_(this),
+      allow_peephole_optimization_(false),
+      emit_debug_code_(FLAG_debug_code) {
   allow_peephole_optimization_ = FLAG_peephole_optimization;
   if (buffer == NULL) {
     // Do our own buffer management.
     if (buffer_size <= kMinimalBufferSize) {
       buffer_size = kMinimalBufferSize;
 
-      if (spare_buffer_ != NULL) {
-        buffer = spare_buffer_;
-        spare_buffer_ = NULL;
+      if (isolate()->assembler_spare_buffer() != NULL) {
+        buffer = isolate()->assembler_spare_buffer();
+        isolate()->set_assembler_spare_buffer(NULL);
       }
     }
     if (buffer == NULL) {
@@ -315,8 +319,9 @@ Assembler::Assembler(void* buffer, int buffer_size)
 Assembler::~Assembler() {
   ASSERT(const_pool_blocked_nesting_ == 0);
   if (own_buffer_) {
-    if (spare_buffer_ == NULL && buffer_size_ == kMinimalBufferSize) {
-      spare_buffer_ = buffer_;
+    if (isolate()->assembler_spare_buffer() == NULL &&
+        buffer_size_ == kMinimalBufferSize) {
+      isolate()->set_assembler_spare_buffer(buffer_);
     } else {
       DeleteArray(buffer_);
     }
@@ -767,11 +772,36 @@ bool Operand::must_use_constant_pool() const {
 }
 
 
-bool Operand::is_single_instruction() const {
+bool Operand::is_single_instruction(Instr instr) const {
   if (rm_.is_valid()) return true;
-  if (must_use_constant_pool()) return false;
   uint32_t dummy1, dummy2;
-  return fits_shifter(imm32_, &dummy1, &dummy2, NULL);
+  if (must_use_constant_pool() ||
+      !fits_shifter(imm32_, &dummy1, &dummy2, &instr)) {
+    // The immediate operand cannot be encoded as a shifter operand, or use of
+    // constant pool is required. For a mov instruction not setting the
+    // condition code additional instruction conventions can be used.
+    if ((instr & ~kCondMask) == 13*B21) {  // mov, S not set
+      if (must_use_constant_pool() ||
+          !CpuFeatures::IsSupported(ARMv7)) {
+        // mov instruction will be an ldr from constant pool (one instruction).
+        return true;
+      } else {
+        // mov instruction will be a mov or movw followed by movt (two
+        // instructions).
+        return false;
+      }
+    } else {
+      // If this is not a mov or mvn instruction there will always an additional
+      // instructions - either mov or ldr. The mov might actually be two
+      // instructions mov or movw followed by movt so including the actual
+      // instruction two or three instructions will be generated.
+      return false;
+    }
+  } else {
+    // No use of constant pool and the immediate operand can be encoded as a
+    // shifter operand.
+    return true;
+  }
 }
 
 
@@ -794,7 +824,8 @@ void Assembler::addrmod1(Instr instr,
       CHECK(!rn.is(ip));  // rn should never be ip, or will be trashed
       Condition cond = Instruction::ConditionField(instr);
       if ((instr & ~kCondMask) == 13*B21) {  // mov, S not set
-        if (x.must_use_constant_pool() || !CpuFeatures::IsSupported(ARMv7)) {
+        if (x.must_use_constant_pool() ||
+            !CpuFeatures::IsSupported(ARMv7)) {
           RecordRelocInfo(x.rmode_, x.imm32_);
           ldr(rd, MemOperand(pc, 0), cond);
         } else {
@@ -2360,6 +2391,14 @@ void Assembler::vcvt_f32_f64(const SwVfpRegister dst,
 }
 
 
+void Assembler::vneg(const DwVfpRegister dst,
+                     const DwVfpRegister src,
+                     const Condition cond) {
+  emit(cond | 0xE*B24 | 0xB*B20 | B16 | dst.code()*B12 |
+       0x5*B9 | B8 | B6 | src.code());
+}
+
+
 void Assembler::vabs(const DwVfpRegister dst,
                      const DwVfpRegister src,
                      const Condition cond) {
@@ -2633,7 +2672,7 @@ void Assembler::RecordRelocInfo(RelocInfo::Mode rmode, intptr_t data) {
         Serializer::TooLateToEnableNow();
       }
 #endif
-      if (!Serializer::enabled() && !FLAG_debug_code) {
+      if (!Serializer::enabled() && !emit_debug_code()) {
         return;
       }
     }
@@ -2711,8 +2750,8 @@ void Assembler::CheckConstPool(bool force_emit, bool require_jump) {
   RecordComment("[ Constant Pool");
 
   // Put down constant pool marker "Undefined instruction" as specified by
-  // A3.1 Instruction set encoding.
-  emit(0x03000000 | num_prinfo_);
+  // A5.6 (ARMv7) Instruction set encoding.
+  emit(kConstantPoolMarker | num_prinfo_);
 
   // Emit constant pool entries.
   for (int i = 0; i < num_prinfo_; i++) {

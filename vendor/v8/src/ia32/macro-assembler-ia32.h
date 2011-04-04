@@ -56,7 +56,11 @@ class PostCallGenerator;
 // MacroAssembler implements a collection of frequently used macros.
 class MacroAssembler: public Assembler {
  public:
-  MacroAssembler(void* buffer, int size);
+  // The isolate parameter can be NULL if the macro assembler should
+  // not use isolate-dependent functionality. In this case, it's the
+  // responsibility of the caller to never invoke such function on the
+  // macro assembler.
+  MacroAssembler(Isolate* isolate, void* buffer, int size);
 
   // ---------------------------------------------------------------------------
   // GC Support
@@ -474,13 +478,13 @@ class MacroAssembler: public Assembler {
   void StubReturn(int argc);
 
   // Call a runtime routine.
-  void CallRuntime(Runtime::Function* f, int num_arguments);
+  void CallRuntime(const Runtime::Function* f, int num_arguments);
   void CallRuntimeSaveDoubles(Runtime::FunctionId id);
 
   // Call a runtime function, returning the CodeStub object called.
   // Try to generate the stub code if necessary.  Do not perform a GC
   // but instead return a retry after GC failure.
-  MUST_USE_RESULT MaybeObject* TryCallRuntime(Runtime::Function* f,
+  MUST_USE_RESULT MaybeObject* TryCallRuntime(const Runtime::Function* f,
                                               int num_arguments);
 
   // Convenience function: Same as above, but takes the fid instead.
@@ -580,7 +584,10 @@ class MacroAssembler: public Assembler {
 
   void Move(Register target, Handle<Object> value);
 
-  Handle<Object> CodeObject() { return code_object_; }
+  Handle<Object> CodeObject() {
+    ASSERT(!code_object_.is_null());
+    return code_object_;
+  }
 
 
   // ---------------------------------------------------------------------------
@@ -646,7 +653,7 @@ class MacroAssembler: public Assembler {
                       const ParameterCount& actual,
                       Handle<Code> code_constant,
                       const Operand& code_operand,
-                      Label* done,
+                      NearLabel* done,
                       InvokeFlag flag,
                       PostCallGenerator* post_call_generator = NULL);
 
@@ -695,14 +702,16 @@ void MacroAssembler::InNewSpace(Register object,
     // The mask isn't really an address.  We load it as an external reference in
     // case the size of the new space is different between the snapshot maker
     // and the running system.
-    and_(Operand(scratch), Immediate(ExternalReference::new_space_mask()));
-    cmp(Operand(scratch), Immediate(ExternalReference::new_space_start()));
+    and_(Operand(scratch),
+         Immediate(ExternalReference::new_space_mask(isolate())));
+    cmp(Operand(scratch),
+        Immediate(ExternalReference::new_space_start(isolate())));
     j(cc, branch);
   } else {
     int32_t new_space_start = reinterpret_cast<int32_t>(
-        ExternalReference::new_space_start().address());
+        ExternalReference::new_space_start(isolate()).address());
     lea(scratch, Operand(object, -new_space_start));
-    and_(scratch, Heap::NewSpaceMask());
+    and_(scratch, isolate()->heap()->NewSpaceMask());
     j(cc, branch);
   }
 }

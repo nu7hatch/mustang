@@ -48,23 +48,37 @@ namespace internal {
 // -----------------------------------------------------------------------------
 // Implementation of CpuFeatures
 
-// Safe default is no features.
+#ifdef DEBUG
+bool CpuFeatures::initialized_ = false;
+#endif
 uint64_t CpuFeatures::supported_ = 0;
-uint64_t CpuFeatures::enabled_ = 0;
 uint64_t CpuFeatures::found_by_runtime_probing_ = 0;
 
 
-// The Probe method needs executable memory, so it uses Heap::CreateCode.
-// Allocation failure is silent and leads to safe default.
-void CpuFeatures::Probe(bool portable) {
-  ASSERT(Heap::HasBeenSetup());
+void CpuFeatures::Probe() {
+  ASSERT(!initialized_);
   ASSERT(supported_ == 0);
-  if (portable && Serializer::enabled()) {
+#ifdef DEBUG
+  initialized_ = true;
+#endif
+  if (Serializer::enabled()) {
     supported_ |= OS::CpuFeaturesImpliedByPlatform();
     return;  // No features if we might serialize.
   }
 
-  Assembler assm(NULL, 0);
+  const int kBufferSize = 4 * KB;
+  VirtualMemory* memory = new VirtualMemory(kBufferSize);
+  if (!memory->IsReserved()) {
+    delete memory;
+    return;
+  }
+  ASSERT(memory->size() >= static_cast<size_t>(kBufferSize));
+  if (!memory->Commit(memory->address(), kBufferSize, true/*executable*/)) {
+    delete memory;
+    return;
+  }
+
+  Assembler assm(NULL, memory->address(), kBufferSize);
   Label cpuid, done;
 #define __ assm.
   // Save old esp, since we are going to modify the stack.
@@ -118,26 +132,15 @@ void CpuFeatures::Probe(bool portable) {
   __ ret(0);
 #undef __
 
-  CodeDesc desc;
-  assm.GetCode(&desc);
-
-  Object* code;
-  { MaybeObject* maybe_code = Heap::CreateCode(desc,
-                                               Code::ComputeFlags(Code::STUB),
-                                               Handle<Code>::null());
-    if (!maybe_code->ToObject(&code)) return;
-  }
-  if (!code->IsCode()) return;
-
-  PROFILE(CodeCreateEvent(Logger::BUILTIN_TAG,
-                          Code::cast(code), "CpuFeatures::Probe"));
   typedef uint64_t (*F0)();
-  F0 probe = FUNCTION_CAST<F0>(Code::cast(code)->entry());
+  F0 probe = FUNCTION_CAST<F0>(reinterpret_cast<Address>(memory->address()));
   supported_ = probe();
   found_by_runtime_probing_ = supported_;
   uint64_t os_guarantees = OS::CpuFeaturesImpliedByPlatform();
   supported_ |= os_guarantees;
-  found_by_runtime_probing_ &= portable ? ~os_guarantees : 0;
+  found_by_runtime_probing_ &= ~os_guarantees;
+
+  delete memory;
 }
 
 
@@ -295,19 +298,18 @@ bool Operand::is_reg(Register reg) const {
 static void InitCoverageLog();
 #endif
 
-// Spare buffer.
-byte* Assembler::spare_buffer_ = NULL;
-
-Assembler::Assembler(void* buffer, int buffer_size)
-    : positions_recorder_(this) {
+Assembler::Assembler(Isolate* arg_isolate, void* buffer, int buffer_size)
+    : AssemblerBase(arg_isolate),
+      positions_recorder_(this),
+      emit_debug_code_(FLAG_debug_code) {
   if (buffer == NULL) {
     // Do our own buffer management.
     if (buffer_size <= kMinimalBufferSize) {
       buffer_size = kMinimalBufferSize;
 
-      if (spare_buffer_ != NULL) {
-        buffer = spare_buffer_;
-        spare_buffer_ = NULL;
+      if (isolate()->assembler_spare_buffer() != NULL) {
+        buffer = isolate()->assembler_spare_buffer();
+        isolate()->set_assembler_spare_buffer(NULL);
       }
     }
     if (buffer == NULL) {
@@ -348,8 +350,9 @@ Assembler::Assembler(void* buffer, int buffer_size)
 
 Assembler::~Assembler() {
   if (own_buffer_) {
-    if (spare_buffer_ == NULL && buffer_size_ == kMinimalBufferSize) {
-      spare_buffer_ = buffer_;
+    if (isolate()->assembler_spare_buffer() == NULL &&
+        buffer_size_ == kMinimalBufferSize) {
+      isolate()->set_assembler_spare_buffer(buffer_);
     } else {
       DeleteArray(buffer_);
     }
@@ -367,8 +370,6 @@ void Assembler::GetCode(CodeDesc* desc) {
   desc->instr_size = pc_offset();
   desc->reloc_size = (buffer_ + buffer_size_) - reloc_info_writer.pos();
   desc->origin = this;
-
-  Counters::reloc_info_size.Increment(desc->reloc_size);
 }
 
 
@@ -2177,6 +2178,17 @@ void Assembler::cvtss2sd(XMMRegister dst, XMMRegister src) {
 }
 
 
+void Assembler::cvtsd2ss(XMMRegister dst, XMMRegister src) {
+  ASSERT(CpuFeatures::IsEnabled(SSE2));
+  EnsureSpace ensure_space(this);
+  last_pc_ = pc_;
+  EMIT(0xF2);
+  EMIT(0x0F);
+  EMIT(0x5A);
+  emit_sse_operand(dst, src);
+}
+
+
 void Assembler::addsd(XMMRegister dst, XMMRegister src) {
   ASSERT(CpuFeatures::IsEnabled(SSE2));
   EnsureSpace ensure_space(this);
@@ -2421,6 +2433,39 @@ void Assembler::movsd(XMMRegister dst, XMMRegister src) {
 }
 
 
+void Assembler::movss(const Operand& dst, XMMRegister src ) {
+  ASSERT(CpuFeatures::IsEnabled(SSE2));
+  EnsureSpace ensure_space(this);
+  last_pc_ = pc_;
+  EMIT(0xF3);  // float
+  EMIT(0x0F);
+  EMIT(0x11);  // store
+  emit_sse_operand(src, dst);
+}
+
+
+void Assembler::movss(XMMRegister dst, const Operand& src) {
+  ASSERT(CpuFeatures::IsEnabled(SSE2));
+  EnsureSpace ensure_space(this);
+  last_pc_ = pc_;
+  EMIT(0xF3);  // float
+  EMIT(0x0F);
+  EMIT(0x10);  // load
+  emit_sse_operand(dst, src);
+}
+
+
+void Assembler::movss(XMMRegister dst, XMMRegister src) {
+  ASSERT(CpuFeatures::IsEnabled(SSE2));
+  EnsureSpace ensure_space(this);
+  last_pc_ = pc_;
+  EMIT(0xF3);
+  EMIT(0x0F);
+  EMIT(0x10);
+  emit_sse_operand(dst, src);
+}
+
+
 void Assembler::movd(XMMRegister dst, const Operand& src) {
   ASSERT(CpuFeatures::IsEnabled(SSE2));
   EnsureSpace ensure_space(this);
@@ -2629,7 +2674,7 @@ void Assembler::GrowBuffer() {
   // Some internal data structures overflow for very large buffers,
   // they must ensure that kMaximalBufferSize is not too large.
   if ((desc.buffer_size > kMaximalBufferSize) ||
-      (desc.buffer_size > Heap::MaxOldGenerationSize())) {
+      (desc.buffer_size > isolate()->heap()->MaxOldGenerationSize())) {
     V8::FatalProcessOutOfMemory("Assembler::GrowBuffer");
   }
 
@@ -2652,8 +2697,9 @@ void Assembler::GrowBuffer() {
           reloc_info_writer.pos(), desc.reloc_size);
 
   // Switch buffers.
-  if (spare_buffer_ == NULL && buffer_size_ == kMinimalBufferSize) {
-    spare_buffer_ = buffer_;
+  if (isolate()->assembler_spare_buffer() == NULL &&
+      buffer_size_ == kMinimalBufferSize) {
+    isolate()->set_assembler_spare_buffer(buffer_);
   } else {
     DeleteArray(buffer_);
   }
@@ -2761,7 +2807,7 @@ void Assembler::RecordRelocInfo(RelocInfo::Mode rmode, intptr_t data) {
       Serializer::TooLateToEnableNow();
     }
 #endif
-    if (!Serializer::enabled() && !FLAG_debug_code) {
+    if (!Serializer::enabled() && !emit_debug_code()) {
       return;
     }
   }

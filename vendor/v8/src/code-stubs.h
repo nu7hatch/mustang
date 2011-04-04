@@ -40,7 +40,6 @@ namespace internal {
   V(GenericBinaryOp)                     \
   V(TypeRecordingBinaryOp)               \
   V(StringAdd)                           \
-  V(StringCharAt)                        \
   V(SubString)                           \
   V(StringCompare)                       \
   V(SmiOp)                               \
@@ -81,10 +80,19 @@ namespace internal {
 #define CODE_STUB_LIST_ARM(V)
 #endif
 
+// List of code stubs only used on MIPS platforms.
+#ifdef V8_TARGET_ARCH_MIPS
+#define CODE_STUB_LIST_MIPS(V)  \
+  V(RegExpCEntry)
+#else
+#define CODE_STUB_LIST_MIPS(V)
+#endif
+
 // Combined list of code stubs.
 #define CODE_STUB_LIST(V)            \
   CODE_STUB_LIST_ALL_PLATFORMS(V)    \
-  CODE_STUB_LIST_ARM(V)
+  CODE_STUB_LIST_ARM(V)              \
+  CODE_STUB_LIST_MIPS(V)
 
 // Mode to overwrite BinaryExpression values.
 enum OverwriteMode { NO_OVERWRITE, OVERWRITE_LEFT, OVERWRITE_RIGHT };
@@ -167,7 +175,11 @@ class CodeStub BASE_EMBEDDED {
   // Returns a name for logging/debugging purposes.
   virtual const char* GetName() { return MajorName(MajorKey(), false); }
 
-#ifdef DEBUG
+  // Returns whether the code generated for this stub needs to be allocated as
+  // a fixed (non-moveable) code object.
+  virtual bool NeedsImmovableCode() { return false; }
+
+  #ifdef DEBUG
   virtual void Print() { PrintF("%s\n", GetName()); }
 #endif
 
@@ -274,12 +286,17 @@ class ToNumberStub: public CodeStub {
 
 class FastNewClosureStub : public CodeStub {
  public:
+  explicit FastNewClosureStub(StrictModeFlag strict_mode)
+    : strict_mode_(strict_mode) { }
+
   void Generate(MacroAssembler* masm);
 
  private:
   const char* GetName() { return "FastNewClosureStub"; }
   Major MajorKey() { return FastNewClosure; }
-  int MinorKey() { return 0; }
+  int MinorKey() { return strict_mode_; }
+
+  StrictModeFlag strict_mode_;
 };
 
 
@@ -431,18 +448,6 @@ class MathPowStub: public CodeStub {
   virtual int MinorKey() { return 0; }
 
   const char* GetName() { return "MathPowStub"; }
-};
-
-
-class StringCharAtStub: public CodeStub {
- public:
-  StringCharAtStub() {}
-
- private:
-  Major MajorKey() { return StringCharAt; }
-  int MinorKey() { return 0; }
-
-  void Generate(MacroAssembler* masm);
 };
 
 
@@ -623,6 +628,8 @@ class CEntryStub : public CodeStub {
   Major MajorKey() { return CEntry; }
   int MinorKey();
 
+  bool NeedsImmovableCode();
+
   const char* GetName() { return "CEntryStub"; }
 };
 
@@ -661,7 +668,8 @@ class ArgumentsAccessStub: public CodeStub {
  public:
   enum Type {
     READ_ELEMENT,
-    NEW_OBJECT
+    NEW_NON_STRICT,
+    NEW_STRICT
   };
 
   explicit ArgumentsAccessStub(Type type) : type_(type) { }
@@ -675,6 +683,19 @@ class ArgumentsAccessStub: public CodeStub {
   void Generate(MacroAssembler* masm);
   void GenerateReadElement(MacroAssembler* masm);
   void GenerateNewObject(MacroAssembler* masm);
+
+  int GetArgumentsBoilerplateIndex() const {
+  return (type_ == NEW_STRICT)
+      ? Context::STRICT_MODE_ARGUMENTS_BOILERPLATE_INDEX
+      : Context::ARGUMENTS_BOILERPLATE_INDEX;
+  }
+
+  int GetArgumentsObjectSize() const {
+    if (type_ == NEW_STRICT)
+      return Heap::kArgumentsObjectSizeStrict;
+    else
+      return Heap::kArgumentsObjectSize;
+  }
 
   const char* GetName() { return "ArgumentsAccessStub"; }
 

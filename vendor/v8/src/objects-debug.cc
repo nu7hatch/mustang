@@ -91,8 +91,8 @@ void HeapObject::HeapObjectVerify() {
     case BYTE_ARRAY_TYPE:
       ByteArray::cast(this)->ByteArrayVerify();
       break;
-    case PIXEL_ARRAY_TYPE:
-      PixelArray::cast(this)->PixelArrayVerify();
+    case EXTERNAL_PIXEL_ARRAY_TYPE:
+      ExternalPixelArray::cast(this)->ExternalPixelArrayVerify();
       break;
     case EXTERNAL_BYTE_ARRAY_TYPE:
       ExternalByteArray::cast(this)->ExternalByteArrayVerify();
@@ -178,7 +178,7 @@ void HeapObject::HeapObjectVerify() {
 
 void HeapObject::VerifyHeapPointer(Object* p) {
   ASSERT(p->IsHeapObject());
-  ASSERT(Heap::Contains(HeapObject::cast(p)));
+  ASSERT(HEAP->Contains(HeapObject::cast(p)));
 }
 
 
@@ -192,8 +192,8 @@ void ByteArray::ByteArrayVerify() {
 }
 
 
-void PixelArray::PixelArrayVerify() {
-  ASSERT(IsPixelArray());
+void ExternalPixelArray::ExternalPixelArrayVerify() {
+  ASSERT(IsExternalPixelArray());
 }
 
 
@@ -241,18 +241,18 @@ void JSObject::JSObjectVerify() {
               map()->NextFreePropertyIndex()));
   }
   ASSERT(map()->has_fast_elements() ==
-         (elements()->map() == Heap::fixed_array_map() ||
-          elements()->map() == Heap::fixed_cow_array_map()));
+         (elements()->map() == GetHeap()->fixed_array_map() ||
+          elements()->map() == GetHeap()->fixed_cow_array_map()));
   ASSERT(map()->has_fast_elements() == HasFastElements());
 }
 
 
 void Map::MapVerify() {
-  ASSERT(!Heap::InNewSpace(this));
+  ASSERT(!HEAP->InNewSpace(this));
   ASSERT(FIRST_TYPE <= instance_type() && instance_type() <= LAST_TYPE);
   ASSERT(instance_size() == kVariableSizeSentinel ||
          (kPointerSize <= instance_size() &&
-          instance_size() < Heap::Capacity()));
+          instance_size() < HEAP->Capacity()));
   VerifyHeapPointer(prototype());
   VerifyHeapPointer(instance_descriptors());
 }
@@ -261,8 +261,7 @@ void Map::MapVerify() {
 void Map::SharedMapVerify() {
   MapVerify();
   ASSERT(is_shared());
-  ASSERT_EQ(Heap::empty_descriptor_array(), instance_descriptors());
-  ASSERT_EQ(Heap::empty_fixed_array(), code_cache());
+  ASSERT_EQ(GetHeap()->empty_descriptor_array(), instance_descriptors());
   ASSERT_EQ(0, pre_allocated_property_fields());
   ASSERT_EQ(0, unused_property_fields());
   ASSERT_EQ(StaticVisitorBase::GetVisitorId(instance_type(), instance_size()),
@@ -316,7 +315,7 @@ void String::StringVerify() {
   CHECK(IsString());
   CHECK(length() >= 0 && length() <= Smi::kMaxValue);
   if (IsSymbol()) {
-    CHECK(!Heap::InNewSpace(this));
+    CHECK(!HEAP->InNewSpace(this));
   }
 }
 
@@ -380,7 +379,7 @@ void Oddball::OddballVerify() {
   VerifyHeapPointer(to_string());
   Object* number = to_number();
   if (number->IsHeapObject()) {
-    ASSERT(number == Heap::nan_value());
+    ASSERT(number == HEAP->nan_value());
   } else {
     ASSERT(number->IsSmi());
     int value = Smi::cast(number)->value();
@@ -591,16 +590,17 @@ void JSObject::IncrementSpillStatistics(SpillInformation* info) {
       int holes = 0;
       FixedArray* e = FixedArray::cast(elements());
       int len = e->length();
+      Heap* heap = HEAP;
       for (int i = 0; i < len; i++) {
-        if (e->get(i) == Heap::the_hole_value()) holes++;
+        if (e->get(i) == heap->the_hole_value()) holes++;
       }
       info->number_of_fast_used_elements_   += len - holes;
       info->number_of_fast_unused_elements_ += holes;
       break;
     }
-    case PIXEL_ELEMENTS: {
+    case EXTERNAL_PIXEL_ELEMENTS: {
       info->number_of_objects_with_fast_elements_++;
-      PixelArray* e = PixelArray::cast(elements());
+      ExternalPixelArray* e = ExternalPixelArray::cast(elements());
       info->number_of_fast_used_elements_ += e->length();
       break;
     }

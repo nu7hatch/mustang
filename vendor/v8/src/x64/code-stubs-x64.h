@@ -1,4 +1,4 @@
-// Copyright 2010 the V8 project authors. All rights reserved.
+// Copyright 2011 the V8 project authors. All rights reserved.
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
@@ -39,15 +39,23 @@ namespace internal {
 // TranscendentalCache runtime function.
 class TranscendentalCacheStub: public CodeStub {
  public:
-  explicit TranscendentalCacheStub(TranscendentalCache::Type type)
-      : type_(type) {}
+  enum ArgumentType {
+    TAGGED = 0,
+    UNTAGGED = 1 << TranscendentalCache::kTranscendentalTypeBits
+  };
+
+  explicit TranscendentalCacheStub(TranscendentalCache::Type type,
+                                   ArgumentType argument_type)
+      : type_(type), argument_type_(argument_type) {}
   void Generate(MacroAssembler* masm);
  private:
   TranscendentalCache::Type type_;
+  ArgumentType argument_type_;
+
   Major MajorKey() { return TranscendentalCache; }
-  int MinorKey() { return type_; }
+  int MinorKey() { return type_ | argument_type_; }
   Runtime::FunctionId RuntimeFunction();
-  void GenerateOperation(MacroAssembler* masm, Label* on_nan_result);
+  void GenerateOperation(MacroAssembler* masm);
 };
 
 
@@ -281,6 +289,7 @@ class TypeRecordingBinaryOpStub: public CodeStub {
   void GenerateSmiStub(MacroAssembler* masm);
   void GenerateInt32Stub(MacroAssembler* masm);
   void GenerateHeapNumberStub(MacroAssembler* masm);
+  void GenerateOddballStub(MacroAssembler* masm);
   void GenerateStringStub(MacroAssembler* masm);
   void GenerateGenericStub(MacroAssembler* masm);
 
@@ -462,49 +471,6 @@ class NumberToStringStub: public CodeStub {
 #endif
 };
 
-
-// Generate code to load an element from a pixel array. The receiver is assumed
-// to not be a smi and to have elements, the caller must guarantee this
-// precondition. If key is not a smi, then the generated code branches to
-// key_not_smi. Callers can specify NULL for key_not_smi to signal that a smi
-// check has already been performed on key so that the smi check is not
-// generated. If key is not a valid index within the bounds of the pixel array,
-// the generated code jumps to out_of_range. receiver, key and elements are
-// unchanged throughout the generated code sequence.
-void GenerateFastPixelArrayLoad(MacroAssembler* masm,
-                                Register receiver,
-                                Register key,
-                                Register elements,
-                                Register untagged_key,
-                                Register result,
-                                Label* not_pixel_array,
-                                Label* key_not_smi,
-                                Label* out_of_range);
-
-// Generate code to store an element into a pixel array, clamping values between
-// [0..255]. The receiver is assumed to not be a smi and to have elements, the
-// caller must guarantee this precondition. If key is not a smi, then the
-// generated code branches to key_not_smi. Callers can specify NULL for
-// key_not_smi to signal that a smi check has already been performed on key so
-// that the smi check is not generated. If the value is not a smi, the
-// generated code will branch to value_not_smi.  If the receiver
-// doesn't have pixel array elements, the generated code will branch to
-// not_pixel_array, unless not_pixel_array is NULL, in which case the caller
-// must ensure that the receiver has pixel array elements.  If key is not a
-// valid index within the bounds of the pixel array, the generated code jumps to
-// out_of_range.
-void GenerateFastPixelArrayStore(MacroAssembler* masm,
-                                 Register receiver,
-                                 Register key,
-                                 Register value,
-                                 Register elements,
-                                 Register scratch1,
-                                 bool load_elements_from_receiver,
-                                 bool key_is_untagged,
-                                 Label* key_not_smi,
-                                 Label* value_not_smi,
-                                 Label* not_pixel_array,
-                                 Label* out_of_range);
 
 } }  // namespace v8::internal
 

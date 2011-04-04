@@ -1,4 +1,4 @@
-// Copyright 2010 the V8 project authors. All rights reserved.
+// Copyright 2011 the V8 project authors. All rights reserved.
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
@@ -135,7 +135,10 @@ class AstNode: public ZoneObject {
 
   static const int kNoNumber = -1;
 
-  AstNode() : id_(GetNextId()) { count_++; }
+  AstNode() : id_(GetNextId()) {
+    Isolate* isolate = Isolate::Current();
+    isolate->set_ast_node_count(isolate->ast_node_count() + 1);
+  }
 
   virtual ~AstNode() { }
 
@@ -159,22 +162,28 @@ class AstNode: public ZoneObject {
   // True if the node is simple enough for us to inline calls containing it.
   virtual bool IsInlineable() const { return false; }
 
-  static int Count() { return count_; }
-  static void ResetIds() { current_id_ = 0; }
+  static int Count() { return Isolate::Current()->ast_node_count(); }
+  static void ResetIds() { Isolate::Current()->set_ast_node_id(0); }
   unsigned id() const { return id_; }
 
  protected:
-  static unsigned GetNextId() { return current_id_++; }
+  static unsigned GetNextId() {
+    Isolate* isolate = Isolate::Current();
+    unsigned tmp = isolate->ast_node_id();
+    isolate->set_ast_node_id(tmp + 1);
+    return tmp;
+  }
   static unsigned ReserveIdRange(int n) {
-    unsigned tmp = current_id_;
-    current_id_ += n;
+    Isolate* isolate = Isolate::Current();
+    unsigned tmp = isolate->ast_node_id();
+    isolate->set_ast_node_id(tmp + n);
     return tmp;
   }
 
  private:
-  static unsigned current_id_;
-  static unsigned count_;
   unsigned id_;
+
+  friend class CaseClause;  // Generates AST IDs.
 };
 
 
@@ -333,10 +342,6 @@ class ValidLeftHandSideSentinel: public Expression {
  public:
   virtual bool IsValidLeftHandSide() { return true; }
   virtual void Accept(AstVisitor* v) { UNREACHABLE(); }
-  static ValidLeftHandSideSentinel* instance() { return &instance_; }
-
- private:
-  static ValidLeftHandSideSentinel instance_;
 };
 
 
@@ -694,6 +699,8 @@ class CaseClause: public ZoneObject {
   int position() { return position_; }
   void set_position(int pos) { position_ = pos; }
 
+  int EntryId() { return entry_id_; }
+
   // Type feedback information.
   void RecordTypeFeedback(TypeFeedbackOracle* oracle);
   bool IsSmiCompare() { return compare_type_ == SMI_ONLY; }
@@ -706,6 +713,7 @@ class CaseClause: public ZoneObject {
   int position_;
   enum CompareTypeFeedback { NONE, SMI_ONLY, OBJECT_ONLY };
   CompareTypeFeedback compare_type_;
+  int entry_id_;
 };
 
 
@@ -893,10 +901,17 @@ class Literal: public Expression {
   virtual bool ToBooleanIsFalse() { return handle_->ToBoolean()->IsFalse(); }
 
   // Identity testers.
-  bool IsNull() const { return handle_.is_identical_to(Factory::null_value()); }
-  bool IsTrue() const { return handle_.is_identical_to(Factory::true_value()); }
+  bool IsNull() const {
+    ASSERT(!handle_.is_null());
+    return handle_->IsNull();
+  }
+  bool IsTrue() const {
+    ASSERT(!handle_.is_null());
+    return handle_->IsTrue();
+  }
   bool IsFalse() const {
-    return handle_.is_identical_to(Factory::false_value());
+    ASSERT(!handle_.is_null());
+    return handle_->IsFalse();
   }
 
   Handle<Object> handle() const { return handle_; }
@@ -970,11 +985,13 @@ class ObjectLiteral: public MaterializedLiteral {
                 int literal_index,
                 bool is_simple,
                 bool fast_elements,
-                int depth)
+                int depth,
+                bool has_function)
       : MaterializedLiteral(literal_index, is_simple, depth),
         constant_properties_(constant_properties),
         properties_(properties),
-        fast_elements_(fast_elements) {}
+        fast_elements_(fast_elements),
+        has_function_(has_function) {}
 
   DECLARE_NODE_TYPE(ObjectLiteral)
 
@@ -985,16 +1002,24 @@ class ObjectLiteral: public MaterializedLiteral {
 
   bool fast_elements() const { return fast_elements_; }
 
+  bool has_function() { return has_function_; }
 
   // Mark all computed expressions that are bound to a key that
   // is shadowed by a later occurrence of the same key. For the
   // marked expressions, no store code is emitted.
   void CalculateEmitStore();
 
+  enum Flags {
+    kNoFlags = 0,
+    kFastElements = 1,
+    kHasFunction = 1 << 1
+  };
+
  private:
   Handle<FixedArray> constant_properties_;
   ZoneList<Property*>* properties_;
   bool fast_elements_;
+  bool has_function_;
 };
 
 
@@ -1110,6 +1135,7 @@ class VariableProxy: public Expression {
   Variable* var() const { return var_; }
   bool is_this() const { return is_this_; }
   bool inside_with() const { return inside_with_; }
+  int position() const { return position_; }
 
   void MarkAsTrivial() { is_trivial_ = true; }
 
@@ -1122,8 +1148,12 @@ class VariableProxy: public Expression {
   bool is_this_;
   bool inside_with_;
   bool is_trivial_;
+  int position_;
 
-  VariableProxy(Handle<String> name, bool is_this, bool inside_with);
+  VariableProxy(Handle<String> name,
+                bool is_this,
+                bool inside_with,
+                int position = RelocInfo::kNoPosition);
   explicit VariableProxy(bool is_this);
 
   friend class Scope;
@@ -1133,15 +1163,11 @@ class VariableProxy: public Expression {
 class VariableProxySentinel: public VariableProxy {
  public:
   virtual bool IsValidLeftHandSide() { return !is_this(); }
-  static VariableProxySentinel* this_proxy() { return &this_proxy_; }
-  static VariableProxySentinel* identifier_proxy() {
-    return &identifier_proxy_;
-  }
 
  private:
   explicit VariableProxySentinel(bool is_this) : VariableProxy(is_this) { }
-  static VariableProxySentinel this_proxy_;
-  static VariableProxySentinel identifier_proxy_;
+
+  friend class AstSentinels;
 };
 
 
@@ -1209,6 +1235,7 @@ class Property: public Expression {
         is_monomorphic_(false),
         is_array_length_(false),
         is_string_length_(false),
+        is_string_access_(false),
         is_function_prototype_(false),
         is_arguments_access_(false) { }
 
@@ -1223,6 +1250,7 @@ class Property: public Expression {
   bool is_synthetic() const { return type_ == SYNTHETIC; }
 
   bool IsStringLength() const { return is_string_length_; }
+  bool IsStringAccess() const { return is_string_access_; }
   bool IsFunctionPrototype() const { return is_function_prototype_; }
 
   // Marks that this is actually an argument rewritten to a keyed property
@@ -1232,6 +1260,11 @@ class Property: public Expression {
   }
   bool is_arguments_access() const { return is_arguments_access_; }
 
+  ExternalArrayType GetExternalArrayType() const { return array_type_; }
+  void SetExternalArrayType(ExternalArrayType array_type) {
+    array_type_ = array_type;
+  }
+
   // Type feedback information.
   void RecordTypeFeedback(TypeFeedbackOracle* oracle);
   virtual bool IsMonomorphic() { return is_monomorphic_; }
@@ -1240,10 +1273,6 @@ class Property: public Expression {
   virtual Handle<Map> GetMonomorphicReceiverType() {
     return monomorphic_receiver_type_;
   }
-
-  // Returns a property singleton property access on 'this'.  Used
-  // during preparsing.
-  static Property* this_property() { return &this_property_; }
 
  private:
   Expression* obj_;
@@ -1255,12 +1284,11 @@ class Property: public Expression {
   bool is_monomorphic_ : 1;
   bool is_array_length_ : 1;
   bool is_string_length_ : 1;
+  bool is_string_access_ : 1;
   bool is_function_prototype_ : 1;
   bool is_arguments_access_ : 1;
   Handle<Map> monomorphic_receiver_type_;
-
-  // Dummy property used during preparsing.
-  static Property this_property_;
+  ExternalArrayType array_type_;
 };
 
 
@@ -1293,12 +1321,10 @@ class Call: public Expression {
   Handle<JSGlobalPropertyCell> cell() { return cell_; }
 
   bool ComputeTarget(Handle<Map> type, Handle<String> name);
-  bool ComputeGlobalTarget(Handle<GlobalObject> global, Handle<String> name);
+  bool ComputeGlobalTarget(Handle<GlobalObject> global, LookupResult* lookup);
 
   // Bailout support.
   int ReturnId() const { return return_id_; }
-
-  static Call* sentinel() { return &sentinel_; }
 
 #ifdef DEBUG
   // Used to assert that the FullCodeGenerator records the return site.
@@ -1318,8 +1344,36 @@ class Call: public Expression {
   Handle<JSGlobalPropertyCell> cell_;
 
   int return_id_;
+};
 
-  static Call sentinel_;
+
+class AstSentinels {
+ public:
+  ~AstSentinels() { }
+
+  // Returns a property singleton property access on 'this'.  Used
+  // during preparsing.
+  Property* this_property() { return &this_property_; }
+  VariableProxySentinel* this_proxy() { return &this_proxy_; }
+  VariableProxySentinel* identifier_proxy() { return &identifier_proxy_; }
+  ValidLeftHandSideSentinel* valid_left_hand_side_sentinel() {
+    return &valid_left_hand_side_sentinel_;
+  }
+  Call* call_sentinel() { return &call_sentinel_; }
+  EmptyStatement* empty_statement() { return &empty_statement_; }
+
+ private:
+  AstSentinels();
+  VariableProxySentinel this_proxy_;
+  VariableProxySentinel identifier_proxy_;
+  ValidLeftHandSideSentinel valid_left_hand_side_sentinel_;
+  Property this_property_;
+  Call call_sentinel_;
+  EmptyStatement empty_statement_;
+
+  friend class Isolate;
+
+  DISALLOW_COPY_AND_ASSIGN(AstSentinels);
 };
 
 
@@ -1350,7 +1404,7 @@ class CallNew: public Expression {
 class CallRuntime: public Expression {
  public:
   CallRuntime(Handle<String> name,
-              Runtime::Function* function,
+              const Runtime::Function* function,
               ZoneList<Expression*>* arguments)
       : name_(name), function_(function), arguments_(arguments) { }
 
@@ -1359,13 +1413,13 @@ class CallRuntime: public Expression {
   virtual bool IsInlineable() const;
 
   Handle<String> name() const { return name_; }
-  Runtime::Function* function() const { return function_; }
+  const Runtime::Function* function() const { return function_; }
   ZoneList<Expression*>* arguments() const { return arguments_; }
   bool is_jsruntime() const { return function_ == NULL; }
 
  private:
   Handle<String> name_;
-  Runtime::Function* function_;
+  const Runtime::Function* function_;
   ZoneList<Expression*>* arguments_;
 };
 
@@ -1621,6 +1675,10 @@ class Assignment: public Expression {
   virtual Handle<Map> GetMonomorphicReceiverType() {
     return monomorphic_receiver_type_;
   }
+  ExternalArrayType GetExternalArrayType() const { return array_type_; }
+  void SetExternalArrayType(ExternalArrayType array_type) {
+    array_type_ = array_type;
+  }
 
   // Bailout support.
   int CompoundLoadId() const { return compound_load_id_; }
@@ -1641,6 +1699,7 @@ class Assignment: public Expression {
   bool is_monomorphic_;
   ZoneMapList* receiver_types_;
   Handle<Map> monomorphic_receiver_type_;
+  ExternalArrayType array_type_;
 };
 
 
@@ -1673,8 +1732,7 @@ class FunctionLiteral: public Expression {
                   int start_position,
                   int end_position,
                   bool is_expression,
-                  bool contains_loops,
-                  bool strict_mode)
+                  bool contains_loops)
       : name_(name),
         scope_(scope),
         body_(body),
@@ -1688,10 +1746,8 @@ class FunctionLiteral: public Expression {
         end_position_(end_position),
         is_expression_(is_expression),
         contains_loops_(contains_loops),
-        strict_mode_(strict_mode),
         function_token_position_(RelocInfo::kNoPosition),
-        inferred_name_(Heap::empty_string()),
-        try_full_codegen_(false),
+        inferred_name_(HEAP->empty_string()),
         pretenure_(false) { }
 
   DECLARE_NODE_TYPE(FunctionLiteral)
@@ -1705,7 +1761,7 @@ class FunctionLiteral: public Expression {
   int end_position() const { return end_position_; }
   bool is_expression() const { return is_expression_; }
   bool contains_loops() const { return contains_loops_; }
-  bool strict_mode() const { return strict_mode_; }
+  bool strict_mode() const;
 
   int materialized_literal_count() { return materialized_literal_count_; }
   int expected_property_count() { return expected_property_count_; }
@@ -1729,9 +1785,6 @@ class FunctionLiteral: public Expression {
     inferred_name_ = inferred_name;
   }
 
-  bool try_full_codegen() { return try_full_codegen_; }
-  void set_try_full_codegen(bool flag) { try_full_codegen_ = flag; }
-
   bool pretenure() { return pretenure_; }
   void set_pretenure(bool value) { pretenure_ = value; }
 
@@ -1751,7 +1804,6 @@ class FunctionLiteral: public Expression {
   bool strict_mode_;
   int function_token_position_;
   Handle<String> inferred_name_;
-  bool try_full_codegen_;
   bool pretenure_;
 };
 
@@ -2138,7 +2190,7 @@ class RegExpEmpty: public RegExpTree {
 
 class AstVisitor BASE_EMBEDDED {
  public:
-  AstVisitor() : stack_overflow_(false) { }
+  AstVisitor() : isolate_(Isolate::Current()), stack_overflow_(false) { }
   virtual ~AstVisitor() { }
 
   // Stack overflow check and dynamic dispatch.
@@ -2168,9 +2220,14 @@ class AstVisitor BASE_EMBEDDED {
   AST_NODE_LIST(DEF_VISIT)
 #undef DEF_VISIT
 
+ protected:
+  Isolate* isolate() { return isolate_; }
+
  private:
+  Isolate* isolate_;
   bool stack_overflow_;
 };
+
 
 } }  // namespace v8::internal
 

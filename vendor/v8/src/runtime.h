@@ -28,6 +28,8 @@
 #ifndef V8_RUNTIME_H_
 #define V8_RUNTIME_H_
 
+#include "zone.h"
+
 namespace v8 {
 namespace internal {
 
@@ -241,7 +243,7 @@ namespace internal {
   F(ResolvePossiblyDirectEval, 4, 2) \
   F(ResolvePossiblyDirectEvalNoLookup, 4, 2) \
   \
-  F(SetProperty, -1 /* 3 or 4 */, 1) \
+  F(SetProperty, -1 /* 4 or 5 */, 1) \
   F(DefineOrRedefineDataProperty, 4, 1) \
   F(DefineOrRedefineAccessorProperty, 5, 1) \
   F(IgnoreAttributesAndSetProperty, -1 /* 3 or 4 */, 1) \
@@ -288,12 +290,12 @@ namespace internal {
   F(DeleteContextSlot, 2, 1) \
   F(LoadContextSlot, 2, 2) \
   F(LoadContextSlotNoReferenceError, 2, 2) \
-  F(StoreContextSlot, 3, 1) \
+  F(StoreContextSlot, 4, 1) \
   \
   /* Declarations and initialization */ \
-  F(DeclareGlobals, 3, 1) \
+  F(DeclareGlobals, 4, 1) \
   F(DeclareContextSlot, 4, 1) \
-  F(InitializeVarGlobal, -1 /* 1 or 2 */, 1) \
+  F(InitializeVarGlobal, -1 /* 2 or 3 */, 1) \
   F(InitializeConstGlobal, 2, 1) \
   F(InitializeConstContextSlot, 3, 1) \
   F(OptimizeObjectForAddingMultipleProperties, 2, 1) \
@@ -376,7 +378,21 @@ namespace internal {
   \
   F(SetFlags, 1, 1) \
   F(CollectGarbage, 1, 1) \
-  F(GetHeapUsage, 0, 1)
+  F(GetHeapUsage, 0, 1) \
+  \
+  /* LiveObjectList support*/ \
+  F(HasLOLEnabled, 0, 1) \
+  F(CaptureLOL, 0, 1) \
+  F(DeleteLOL, 1, 1) \
+  F(DumpLOL, 5, 1) \
+  F(GetLOLObj, 1, 1) \
+  F(GetLOLObjId, 1, 1) \
+  F(GetLOLObjRetainers, 6, 1) \
+  F(GetLOLPath, 3, 1) \
+  F(InfoLOL, 2, 1) \
+  F(PrintLOLObj, 1, 1) \
+  F(ResetLOL, 0, 1) \
+  F(SummarizeLOL, 3, 1)
 
 #else
 #define RUNTIME_FUNCTION_LIST_DEBUGGER_SUPPORT(F)
@@ -397,7 +413,6 @@ namespace internal {
 #else
 #define RUNTIME_FUNCTION_LIST_DEBUG(F)
 #endif
-
 
 // ----------------------------------------------------------------------------
 // RUNTIME_FUNCTION_LIST defines all runtime functions accessed
@@ -468,6 +483,57 @@ namespace internal {
 //---------------------------------------------------------------------------
 // Runtime provides access to all C++ runtime functions.
 
+class RuntimeState {
+ public:
+
+  StaticResource<StringInputBuffer>* string_input_buffer() {
+    return &string_input_buffer_;
+  }
+  unibrow::Mapping<unibrow::ToUppercase, 128>* to_upper_mapping() {
+    return &to_upper_mapping_;
+  }
+  unibrow::Mapping<unibrow::ToLowercase, 128>* to_lower_mapping() {
+    return &to_lower_mapping_;
+  }
+  StringInputBuffer* string_input_buffer_compare_bufx() {
+    return &string_input_buffer_compare_bufx_;
+  }
+  StringInputBuffer* string_input_buffer_compare_bufy() {
+    return &string_input_buffer_compare_bufy_;
+  }
+  StringInputBuffer* string_locale_compare_buf1() {
+    return &string_locale_compare_buf1_;
+  }
+  StringInputBuffer* string_locale_compare_buf2() {
+    return &string_locale_compare_buf2_;
+  }
+  int* smi_lexicographic_compare_x_elms() {
+    return smi_lexicographic_compare_x_elms_;
+  }
+  int* smi_lexicographic_compare_y_elms() {
+    return smi_lexicographic_compare_y_elms_;
+  }
+
+ private:
+  RuntimeState() {}
+  // Non-reentrant string buffer for efficient general use in the runtime.
+  StaticResource<StringInputBuffer> string_input_buffer_;
+  unibrow::Mapping<unibrow::ToUppercase, 128> to_upper_mapping_;
+  unibrow::Mapping<unibrow::ToLowercase, 128> to_lower_mapping_;
+  StringInputBuffer string_input_buffer_compare_bufx_;
+  StringInputBuffer string_input_buffer_compare_bufy_;
+  StringInputBuffer string_locale_compare_buf1_;
+  StringInputBuffer string_locale_compare_buf2_;
+  int smi_lexicographic_compare_x_elms_[10];
+  int smi_lexicographic_compare_y_elms_[10];
+
+  friend class Isolate;
+  friend class Runtime;
+
+  DISALLOW_COPY_AND_ASSIGN(RuntimeState);
+};
+
+
 class Runtime : public AllStatic {
  public:
   enum FunctionId {
@@ -511,56 +577,66 @@ class Runtime : public AllStatic {
   // retried with a new, empty StringDictionary, not with the same one.
   // Alternatively, heap initialization can be completely restarted.
   MUST_USE_RESULT static MaybeObject* InitializeIntrinsicFunctionNames(
-      Object* dictionary);
+      Heap* heap, Object* dictionary);
 
   // Get the intrinsic function with the given name, which must be a symbol.
-  static Function* FunctionForSymbol(Handle<String> name);
+  static const Function* FunctionForSymbol(Handle<String> name);
 
   // Get the intrinsic function with the given FunctionId.
-  static Function* FunctionForId(FunctionId id);
+  static const Function* FunctionForId(FunctionId id);
 
   // General-purpose helper functions for runtime system.
-  static int StringMatch(Handle<String> sub, Handle<String> pat, int index);
+  static int StringMatch(Isolate* isolate,
+                         Handle<String> sub,
+                         Handle<String> pat,
+                         int index);
 
-  static bool IsUpperCaseChar(uint16_t ch);
+  static bool IsUpperCaseChar(RuntimeState* runtime_state, uint16_t ch);
 
   // TODO(1240886): The following three methods are *not* handle safe,
   // but accept handle arguments. This seems fragile.
 
   // Support getting the characters in a string using [] notation as
   // in Firefox/SpiderMonkey, Safari and Opera.
-  MUST_USE_RESULT static MaybeObject* GetElementOrCharAt(Handle<Object> object,
+  MUST_USE_RESULT static MaybeObject* GetElementOrCharAt(Isolate* isolate,
+                                                         Handle<Object> object,
                                                          uint32_t index);
   MUST_USE_RESULT static MaybeObject* GetElement(Handle<Object> object,
                                                  uint32_t index);
 
   MUST_USE_RESULT static MaybeObject* SetObjectProperty(
+      Isolate* isolate,
       Handle<Object> object,
       Handle<Object> key,
       Handle<Object> value,
-      PropertyAttributes attr);
+      PropertyAttributes attr,
+      StrictModeFlag strict_mode);
 
   MUST_USE_RESULT static MaybeObject* ForceSetObjectProperty(
+      Isolate* isolate,
       Handle<JSObject> object,
       Handle<Object> key,
       Handle<Object> value,
       PropertyAttributes attr);
 
   MUST_USE_RESULT static MaybeObject* ForceDeleteObjectProperty(
+      Isolate* isolate,
       Handle<JSObject> object,
       Handle<Object> key);
 
-  MUST_USE_RESULT static MaybeObject* GetObjectProperty(Handle<Object> object,
-                                                        Handle<Object> key);
+  MUST_USE_RESULT static MaybeObject* GetObjectProperty(
+      Isolate* isolate,
+      Handle<Object> object,
+      Handle<Object> key);
 
   // This function is used in FunctionNameUsing* tests.
-  static Object* FindSharedFunctionInfoInScript(Handle<Script> script,
+  static Object* FindSharedFunctionInfoInScript(Isolate* isolate,
+                                                Handle<Script> script,
                                                 int position);
 
   // Helper functions used stubs.
   static void PerformGC(Object* result);
 };
-
 
 } }  // namespace v8::internal
 

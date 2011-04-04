@@ -284,6 +284,7 @@ const SwVfpRegister s29 = { 29 };
 const SwVfpRegister s30 = { 30 };
 const SwVfpRegister s31 = { 31 };
 
+const DwVfpRegister no_dreg = { -1 };
 const DwVfpRegister d0  = {  0 };
 const DwVfpRegister d1  = {  1 };
 const DwVfpRegister d2  = {  2 };
@@ -388,8 +389,11 @@ class Operand BASE_EMBEDDED {
   INLINE(bool is_reg() const);
 
   // Return true if this operand fits in one instruction so that no
-  // 2-instruction solution with a load into the ip register is necessary.
-  bool is_single_instruction() const;
+  // 2-instruction solution with a load into the ip register is necessary. If
+  // the instruction this operand is used for is a MOV or MVN instruction the
+  // actual instruction to use is required for this calculation. For other
+  // instructions instr is ignored.
+  bool is_single_instruction(Instr instr = 0) const;
   bool must_use_constant_pool() const;
 
   inline int32_t immediate() const {
@@ -468,32 +472,54 @@ class CpuFeatures : public AllStatic {
  public:
   // Detect features of the target CPU. Set safe defaults if the serializer
   // is enabled (snapshots must be portable).
-  static void Probe(bool portable);
+  static void Probe();
 
   // Check whether a feature is supported by the target CPU.
   static bool IsSupported(CpuFeature f) {
+    ASSERT(initialized_);
     if (f == VFP3 && !FLAG_enable_vfp3) return false;
     return (supported_ & (1u << f)) != 0;
   }
 
+#ifdef DEBUG
   // Check whether a feature is currently enabled.
   static bool IsEnabled(CpuFeature f) {
-    return (enabled_ & (1u << f)) != 0;
+    ASSERT(initialized_);
+    Isolate* isolate = Isolate::UncheckedCurrent();
+    if (isolate == NULL) {
+      // When no isolate is available, work as if we're running in
+      // release mode.
+      return IsSupported(f);
+    }
+    unsigned enabled = static_cast<unsigned>(isolate->enabled_cpu_features());
+    return (enabled & (1u << f)) != 0;
   }
+#endif
 
   // Enable a specified feature within a scope.
   class Scope BASE_EMBEDDED {
 #ifdef DEBUG
    public:
     explicit Scope(CpuFeature f) {
+      unsigned mask = 1u << f;
       ASSERT(CpuFeatures::IsSupported(f));
       ASSERT(!Serializer::enabled() ||
-             (found_by_runtime_probing_ & (1u << f)) == 0);
-      old_enabled_ = CpuFeatures::enabled_;
-      CpuFeatures::enabled_ |= 1u << f;
+             (CpuFeatures::found_by_runtime_probing_ & mask) == 0);
+      isolate_ = Isolate::UncheckedCurrent();
+      old_enabled_ = 0;
+      if (isolate_ != NULL) {
+        old_enabled_ = static_cast<unsigned>(isolate_->enabled_cpu_features());
+        isolate_->set_enabled_cpu_features(old_enabled_ | mask);
+      }
     }
-    ~Scope() { CpuFeatures::enabled_ = old_enabled_; }
+    ~Scope() {
+      ASSERT_EQ(Isolate::UncheckedCurrent(), isolate_);
+      if (isolate_ != NULL) {
+        isolate_->set_enabled_cpu_features(old_enabled_);
+      }
+    }
    private:
+    Isolate* isolate_;
     unsigned old_enabled_;
 #else
    public:
@@ -501,10 +527,40 @@ class CpuFeatures : public AllStatic {
 #endif
   };
 
+  class TryForceFeatureScope BASE_EMBEDDED {
+   public:
+    explicit TryForceFeatureScope(CpuFeature f)
+        : old_supported_(CpuFeatures::supported_) {
+      if (CanForce()) {
+        CpuFeatures::supported_ |= (1u << f);
+      }
+    }
+
+    ~TryForceFeatureScope() {
+      if (CanForce()) {
+        CpuFeatures::supported_ = old_supported_;
+      }
+    }
+
+   private:
+    static bool CanForce() {
+      // It's only safe to temporarily force support of CPU features
+      // when there's only a single isolate, which is guaranteed when
+      // the serializer is enabled.
+      return Serializer::enabled();
+    }
+
+    const unsigned old_supported_;
+  };
+
  private:
+#ifdef DEBUG
+  static bool initialized_;
+#endif
   static unsigned supported_;
-  static unsigned enabled_;
   static unsigned found_by_runtime_probing_;
+
+  DISALLOW_COPY_AND_ASSIGN(CpuFeatures);
 };
 
 
@@ -532,7 +588,7 @@ extern const Instr kAndBicFlip;
 
 
 
-class Assembler : public Malloced {
+class Assembler : public AssemblerBase {
  public:
   // Create an assembler. Instructions and relocation information are emitted
   // into a buffer, with the instructions starting from the beginning and the
@@ -547,8 +603,11 @@ class Assembler : public Malloced {
   // for code generation and assumes its size to be buffer_size. If the buffer
   // is too small, a fatal error occurs. No deallocation of the buffer is done
   // upon destruction of the assembler.
-  Assembler(void* buffer, int buffer_size);
+  Assembler(Isolate* isolate, void* buffer, int buffer_size);
   ~Assembler();
+
+  // Overrides the default provided by FLAG_debug_code.
+  void set_emit_debug_code(bool value) { emit_debug_code_ = value; }
 
   // GetCode emits any pending (non-emitted) code and fills the descriptor
   // desc. GetCode() is idempotent; it returns the same result if no other
@@ -988,6 +1047,9 @@ class Assembler : public Malloced {
                     VFPConversionMode mode = kDefaultRoundToZero,
                     const Condition cond = al);
 
+  void vneg(const DwVfpRegister dst,
+            const DwVfpRegister src,
+            const Condition cond = al);
   void vabs(const DwVfpRegister dst,
             const DwVfpRegister src,
             const Condition cond = al);
@@ -1147,6 +1209,8 @@ class Assembler : public Malloced {
   void CheckConstPool(bool force_emit, bool require_jump);
 
  protected:
+  bool emit_debug_code() const { return emit_debug_code_; }
+
   int buffer_space() const { return reloc_info_writer.pos() - pc_; }
 
   // Read/patch instructions
@@ -1275,6 +1339,7 @@ class Assembler : public Malloced {
 
   PositionsRecorder positions_recorder_;
   bool allow_peephole_optimization_;
+  bool emit_debug_code_;
   friend class PositionsRecorder;
   friend class EnsureSpace;
 };

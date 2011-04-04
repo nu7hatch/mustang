@@ -45,7 +45,7 @@
 #include <errno.h>
 #include <ieeefp.h>  // finite()
 #include <signal.h>  // sigemptyset(), etc
-#include <sys/kdi_regs.h>
+#include <sys/regset.h>
 
 
 #undef MAP_TYPE
@@ -169,7 +169,7 @@ void* OS::Allocate(const size_t requested,
   void* mbase = mmap(NULL, msize, prot, MAP_PRIVATE | MAP_ANON, -1, 0);
 
   if (mbase == MAP_FAILED) {
-    LOG(StringEvent("OS::Allocate", "mmap failed"));
+    LOG(ISOLATE, StringEvent("OS::Allocate", "mmap failed"));
     return NULL;
   }
   *allocated = msize;
@@ -415,12 +415,18 @@ bool ThreadHandle::IsValid() const {
 }
 
 
-Thread::Thread() : ThreadHandle(ThreadHandle::INVALID) {
-  set_name("v8:<unknown>");
+Thread::Thread(Isolate* isolate, const Options& options)
+    : ThreadHandle(ThreadHandle::INVALID),
+      isolate_(isolate),
+      stack_size_(options.stack_size) {
+  set_name(options.name);
 }
 
 
-Thread::Thread(const char* name) : ThreadHandle(ThreadHandle::INVALID) {
+Thread::Thread(Isolate* isolate, const char* name)
+    : ThreadHandle(ThreadHandle::INVALID),
+      isolate_(isolate),
+      stack_size_(0) {
   set_name(name);
 }
 
@@ -436,6 +442,7 @@ static void* ThreadEntry(void* arg) {
   // one) so we initialize it here too.
   thread->thread_handle_data()->thread_ = pthread_self();
   ASSERT(thread->IsValid());
+  Thread::SetThreadLocal(Isolate::isolate_key(), thread->isolate());
   thread->Run();
   return NULL;
 }
@@ -448,6 +455,13 @@ void Thread::set_name(const char* name) {
 
 
 void Thread::Start() {
+  pthread_attr_t* attr_ptr = NULL;
+  pthread_attr_t attr;
+  if (stack_size_ > 0) {
+    pthread_attr_init(&attr);
+    pthread_attr_setstacksize(&attr, static_cast<size_t>(stack_size_));
+    attr_ptr = &attr;
+  }
   pthread_create(&thread_handle_data()->thread_, NULL, ThreadEntry, this);
   ASSERT(IsValid());
 }
@@ -612,11 +626,16 @@ static Sampler* active_sampler_ = NULL;
 static pthread_t vm_tid_ = 0;
 
 
+static pthread_t GetThreadID() {
+  return pthread_self();
+}
+
+
 static void ProfilerSignalHandler(int signal, siginfo_t* info, void* context) {
   USE(info);
   if (signal != SIGPROF) return;
   if (active_sampler_ == NULL || !active_sampler_->IsActive()) return;
-  if (vm_tid_ != pthread_self()) return;
+  if (vm_tid_ != GetThreadID()) return;
 
   TickSample sample_obj;
   TickSample* sample = CpuProfiler::TickSampleEvent();
@@ -627,17 +646,10 @@ static void ProfilerSignalHandler(int signal, siginfo_t* info, void* context) {
   mcontext_t& mcontext = ucontext->uc_mcontext;
   sample->state = Top::current_vm_state();
 
-#if V8_HOST_ARCH_IA32
-  sample->pc = reinterpret_cast<Address>(mcontext.gregs[KDIREG_EIP]);
-  sample->sp = reinterpret_cast<Address>(mcontext.gregs[KDIREG_ESP]);
-  sample->fp = reinterpret_cast<Address>(mcontext.gregs[KDIREG_EBP]);
-#elif V8_HOST_ARCH_X64
-  sample->pc = reinterpret_cast<Address>(mcontext.gregs[KDIREG_RIP]);
-  sample->sp = reinterpret_cast<Address>(mcontext.gregs[KDIREG_RSP]);
-  sample->fp = reinterpret_cast<Address>(mcontext.gregs[KDIREG_RBP]);
-#else
-  UNIMPLEMENTED();
-#endif
+  sample->pc = reinterpret_cast<Address>(mcontext.gregs[REG_PC]);
+  sample->sp = reinterpret_cast<Address>(mcontext.gregs[REG_SP]);
+  sample->fp = reinterpret_cast<Address>(mcontext.gregs[REG_FP]);
+
   active_sampler_->SampleStack(sample);
   active_sampler_->Tick(sample);
 }
@@ -645,26 +657,87 @@ static void ProfilerSignalHandler(int signal, siginfo_t* info, void* context) {
 
 class Sampler::PlatformData : public Malloced {
  public:
-  PlatformData() {
-    signal_handler_installed_ = false;
+  enum SleepInterval {
+    FULL_INTERVAL,
+    HALF_INTERVAL
+  };
+
+  explicit PlatformData(Sampler* sampler)
+      : sampler_(sampler),
+        signal_handler_installed_(false),
+        vm_tgid_(getpid()),
+        signal_sender_launched_(false) {
   }
 
+  void SignalSender() {
+    while (sampler_->IsActive()) {
+      if (rate_limiter_.SuspendIfNecessary()) continue;
+      if (sampler_->IsProfiling() && RuntimeProfiler::IsEnabled()) {
+        SendProfilingSignal();
+        Sleep(HALF_INTERVAL);
+        RuntimeProfiler::NotifyTick();
+        Sleep(HALF_INTERVAL);
+      } else {
+        if (sampler_->IsProfiling()) SendProfilingSignal();
+        if (RuntimeProfiler::IsEnabled()) RuntimeProfiler::NotifyTick();
+        Sleep(FULL_INTERVAL);
+      }
+    }
+  }
+
+  void SendProfilingSignal() {
+    if (!signal_handler_installed_) return;
+    pthread_kill(vm_tid_, SIGPROF);
+  }
+
+  void Sleep(SleepInterval full_or_half) {
+    // Convert ms to us and subtract 100 us to compensate delays
+    // occuring during signal delivery.
+    useconds_t interval = sampler_->interval_ * 1000 - 100;
+    if (full_or_half == HALF_INTERVAL) interval /= 2;
+    int result = usleep(interval);
+#ifdef DEBUG
+    if (result != 0 && errno != EINTR) {
+      fprintf(stderr,
+              "SignalSender usleep error; interval = %u, errno = %d\n",
+              interval,
+              errno);
+      ASSERT(result == 0 || errno == EINTR);
+    }
+#endif
+    USE(result);
+  }
+
+  Sampler* sampler_;
   bool signal_handler_installed_;
   struct sigaction old_signal_handler_;
-  struct itimerval old_timer_value_;
+  int vm_tgid_;
+  bool signal_sender_launched_;
+  pthread_t signal_sender_thread_;
+  RuntimeProfilerRateLimiter rate_limiter_;
 };
 
 
-Sampler::Sampler(int interval)
-    : interval_(interval),
+static void* SenderEntry(void* arg) {
+  Sampler::PlatformData* data =
+      reinterpret_cast<Sampler::PlatformData*>(arg);
+  data->SignalSender();
+  return 0;
+}
+
+
+Sampler::Sampler(Isolate* isolate, int interval)
+    : isolate_(isolate),
+      interval_(interval),
       profiling_(false),
       active_(false),
       samples_taken_(0) {
-  data_ = new PlatformData();
+  data_ = new PlatformData(this);
 }
 
 
 Sampler::~Sampler() {
+  ASSERT(!data_->signal_sender_launched_);
   delete data_;
 }
 
@@ -672,41 +745,50 @@ Sampler::~Sampler() {
 void Sampler::Start() {
   // There can only be one active sampler at the time on POSIX
   // platforms.
-  if (active_sampler_ != NULL) return;
+  ASSERT(!IsActive());
+  vm_tid_ = GetThreadID();
 
   // Request profiling signals.
   struct sigaction sa;
   sa.sa_sigaction = ProfilerSignalHandler;
   sigemptyset(&sa.sa_mask);
-  sa.sa_flags = SA_SIGINFO;
-  if (sigaction(SIGPROF, &sa, &data_->old_signal_handler_) != 0) return;
-  data_->signal_handler_installed_ = true;
+  sa.sa_flags = SA_RESTART | SA_SIGINFO;
+  data_->signal_handler_installed_ =
+      sigaction(SIGPROF, &sa, &data_->old_signal_handler_) == 0;
 
-  // Set the itimer to generate a tick for each interval.
-  itimerval itimer;
-  itimer.it_interval.tv_sec = interval_ / 1000;
-  itimer.it_interval.tv_usec = (interval_ % 1000) * 1000;
-  itimer.it_value.tv_sec = itimer.it_interval.tv_sec;
-  itimer.it_value.tv_usec = itimer.it_interval.tv_usec;
-  setitimer(ITIMER_PROF, &itimer, &data_->old_timer_value_);
+  // Start a thread that sends SIGPROF signal to VM thread.
+  // Sending the signal ourselves instead of relying on itimer provides
+  // much better accuracy.
+  SetActive(true);
+  if (pthread_create(
+          &data_->signal_sender_thread_, NULL, SenderEntry, data_) == 0) {
+    data_->signal_sender_launched_ = true;
+  }
 
   // Set this sampler as the active sampler.
   active_sampler_ = this;
-  active_ = true;
 }
 
 
 void Sampler::Stop() {
+  SetActive(false);
+
+  // Wait for signal sender termination (it will exit after setting
+  // active_ to false).
+  if (data_->signal_sender_launched_) {
+    Top::WakeUpRuntimeProfilerThreadBeforeShutdown();
+    pthread_join(data_->signal_sender_thread_, NULL);
+    data_->signal_sender_launched_ = false;
+  }
+
   // Restore old signal handler
   if (data_->signal_handler_installed_) {
-    setitimer(ITIMER_PROF, &data_->old_timer_value_, NULL);
     sigaction(SIGPROF, &data_->old_signal_handler_, 0);
     data_->signal_handler_installed_ = false;
   }
 
   // This sampler is no longer the active sampler.
   active_sampler_ = NULL;
-  active_ = false;
 }
 
 #endif  // ENABLE_LOGGING_AND_PROFILING

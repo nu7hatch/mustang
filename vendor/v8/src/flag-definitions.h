@@ -1,4 +1,4 @@
-// Copyright 2010 the V8 project authors. All rights reserved.
+// Copyright 2011 the V8 project authors. All rights reserved.
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
@@ -97,10 +97,10 @@ private:
 #define FLAG FLAG_FULL
 
 // Flags for Crankshaft.
-#ifdef V8_TARGET_ARCH_IA32
-DEFINE_bool(crankshaft, true, "use crankshaft")
+#ifdef V8_TARGET_ARCH_MIPS
+  DEFINE_bool(crankshaft, false, "use crankshaft")
 #else
-DEFINE_bool(crankshaft, false, "use crankshaft")
+  DEFINE_bool(crankshaft, true, "use crankshaft")
 #endif
 DEFINE_string(hydrogen_filter, "", "hydrogen use/trace filter")
 DEFINE_bool(use_hydrogen, true, "use generated hydrogen for compilation")
@@ -110,13 +110,12 @@ DEFINE_bool(use_lithium, true, "use lithium code generator")
 DEFINE_bool(use_range, true, "use hydrogen range analysis")
 DEFINE_bool(eliminate_dead_phis, true, "eliminate dead phis")
 DEFINE_bool(use_gvn, true, "use hydrogen global value numbering")
-DEFINE_bool(use_peeling, false, "use loop peeling")
 DEFINE_bool(use_canonicalizing, true, "use hydrogen instruction canonicalizing")
 DEFINE_bool(use_inlining, true, "use function inlining")
 DEFINE_bool(limit_inlining, true, "limit code size growth from inlining")
 DEFINE_bool(eliminate_empty_blocks, true, "eliminate empty blocks")
 DEFINE_bool(loop_invariant_code_motion, true, "loop invariant code motion")
-DEFINE_bool(time_hydrogen, false, "timing for hydrogen")
+DEFINE_bool(hydrogen_stats, false, "print statistics for hydrogen")
 DEFINE_bool(trace_hydrogen, false, "trace generated hydrogen to file")
 DEFINE_bool(trace_inlining, false, "trace inlining decisions")
 DEFINE_bool(trace_alloc, false, "trace register allocator")
@@ -135,11 +134,8 @@ DEFINE_bool(deoptimize_uncommon_cases, true, "deoptimize uncommon cases")
 DEFINE_bool(polymorphic_inlining, true, "polymorphic inlining")
 DEFINE_bool(aggressive_loop_invariant_motion, true,
             "aggressive motion of instructions out of loops")
-#ifdef V8_TARGET_ARCH_X64
-DEFINE_bool(use_osr, false, "use on-stack replacement")
-#else
 DEFINE_bool(use_osr, true, "use on-stack replacement")
-#endif
+
 DEFINE_bool(trace_osr, false, "trace on-stack replacement")
 DEFINE_int(stress_runs, 0, "number of stress runs")
 DEFINE_bool(optimize_closures, true, "optimize closures")
@@ -169,6 +165,8 @@ DEFINE_bool(enable_vfp3, true,
             "enable use of VFP3 instructions if available (ARM only)")
 DEFINE_bool(enable_armv7, true,
             "enable use of ARMv7 instructions if available (ARM only)")
+DEFINE_bool(enable_fpu, true,
+            "enable use of MIPS FPU instructions if available (MIPS only)")
 
 // bootstrapper.cc
 DEFINE_string(expose_natives_as, NULL, "expose natives in global object")
@@ -270,6 +268,12 @@ DEFINE_bool(use_idle_notification, true,
 // ic.cc
 DEFINE_bool(use_ic, true, "use inline caching")
 
+#ifdef LIVE_OBJECT_LIST
+// liveobjectlist.cc
+DEFINE_string(lol_workdir, NULL, "path for lol temp files")
+DEFINE_bool(verify_lol, false, "perform debugging verification for lol")
+#endif
+
 // macro-assembler-ia32.cc
 DEFINE_bool(native_code_counters, false,
             "generate extra code for manipulating stats counters")
@@ -358,7 +362,7 @@ DEFINE_bool(remote_debugger, false, "Connect JavaScript debugger to the "
                                     "debugger agent in another process")
 DEFINE_bool(debugger_agent, false, "Enable debugger agent")
 DEFINE_int(debugger_port, 5858, "Port to use for remote debugging")
-DEFINE_string(map_counters, NULL, "Map counters to a file")
+DEFINE_string(map_counters, "", "Map counters to a file")
 DEFINE_args(js_arguments, JSArguments(),
             "Pass all remaining arguments to the script. Alias for \"--\".")
 
@@ -448,6 +452,8 @@ DEFINE_bool(debug_serialization, false,
 DEFINE_bool(collect_heap_spill_statistics, false,
             "report heap spill statistics along with heap_stats "
             "(requires heap_stats)")
+
+DEFINE_bool(trace_isolates, false, "trace isolate state changes")
 
 // VM state
 DEFINE_bool(log_state_changes, false, "Log state changes.")
