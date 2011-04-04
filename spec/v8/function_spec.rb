@@ -143,4 +143,11 @@ describe V8::Function do
       end
     end
   end
+  
+  describe "in context" do
+    it "object reflected twice should be explicitly the same" do
+      cxt.eval("foo = function() {}", "<eval>")
+      cxt[:foo].object_id.should == cxt[:foo].object_id
+    end
+  end
 end

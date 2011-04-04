@@ -69,4 +69,11 @@ describe V8::Object do
       obj.delegate['bar'].should == 2
     end
   end
+
+  describe "in context" do
+    it "object reflected twice should be explicitly the same" do
+      cxt.eval("foo = {a:1, b:2}", "<eval>")
+      cxt[:foo].object_id.should == cxt[:foo].object_id
+    end
+  end
 end

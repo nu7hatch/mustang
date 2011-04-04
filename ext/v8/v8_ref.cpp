@@ -6,6 +6,7 @@ using namespace v8;
 
 void gc_v8_object_mark(v8_ref *r)
 {
+  rb_gc_mark(r->origin);
   rb_gc_mark(r->references);
 }
 
@@ -38,25 +39,28 @@ void v8_ref_set(VALUE obj, const char *name, VALUE ref)
   r->set(name, ref);
 }
 
+/*
+ * Returns original object from which v8 reflection has been created.
+ *
+ */
+VALUE v8_ref_orig(VALUE obj)
+{
+  v8_ref *r = 0;
+  Data_Get_Struct(obj, struct v8_ref, r);
+  return r->origin;
+}
+
 /* The v8_ref struct methods. */
 
 v8_ref::v8_ref(Handle<void> object, VALUE orig/* = Qnil */)
 {
   handle = Persistent<void>::New(object);
   references = rb_hash_new();
-
-  if (!NIL_P(orig)) {
-    origin = orig;
-    rb_gc_register_address(&origin);
-  }
+  origin = orig;
 }
 
 v8_ref::~v8_ref()
 {
-  if (!NIL_P(origin)) {
-    rb_gc_unregister_address(&origin);
-  }
-  
   handle.Dispose();
 }
 

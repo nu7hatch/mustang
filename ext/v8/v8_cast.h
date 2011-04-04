@@ -38,7 +38,14 @@ template <class T> VALUE to_ruby_with_peer(Handle<Value> value, VALUE klass)
   HandleScope scope;
   Local<T> obj = T::Cast(*value);
   Local<Value> peer = obj->GetHiddenValue(String::NewSymbol(RUBY_PEER_ATTR));
-  return peer.IsEmpty() ? v8_ref_new(klass, obj) : (VALUE)External::Unwrap(peer);
+
+  if (peer.IsEmpty()) {
+    VALUE self = v8_ref_new(klass, obj);
+    v8_set_peer2(obj, self);
+    return self;
+  } else {
+    return (VALUE)External::Unwrap(peer);
+  }
 }
 
 template <class T> VALUE to_ruby_without_peer(Handle<Value> value, VALUE klass)

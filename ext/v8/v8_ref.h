@@ -22,6 +22,7 @@ struct v8_ref {
 
 /* API */
 VALUE v8_ref_new(VALUE obj, Handle<void> handle, VALUE orig=Qnil);
+VALUE v8_ref_orig(VALUE obj);
 void v8_ref_set(VALUE obj, const char *name, VALUE ref);
 
 /*

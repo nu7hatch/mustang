@@ -78,4 +78,11 @@ describe V8::Array do
       ary.delegate.should == ary.to_a
     end
   end
+
+  describe "in context" do
+    it "object reflected twice should be explicitly the same" do
+      cxt.eval("foo = [1,2,3]", "<eval>")
+      cxt[:foo].object_id.should == cxt[:foo].object_id
+    end
+  end
 end

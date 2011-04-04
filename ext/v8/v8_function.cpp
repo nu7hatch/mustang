@@ -74,10 +74,11 @@ static VALUE rb_v8_function_new(int argc, VALUE *argv, VALUE klass)
     }
   }
 
-  VALUE func = v8_ref_new(klass, to_v8_function(orig), orig);
-  rb_iv_set(func, "@origin", orig);
+  VALUE self = v8_ref_new(klass, to_v8_function(orig), orig);
+  rb_iv_set(self, "@origin", orig);
+  v8_set_peer(self);
 
-  return func;
+  return self;
 }
 
 /*

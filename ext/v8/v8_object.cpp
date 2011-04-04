@@ -43,16 +43,22 @@ Handle<Value> to_v8_object(VALUE value)
 static VALUE rb_v8_object_new(int argc, VALUE *argv, VALUE klass)
 {
   HandleScope scope;
-
+  VALUE self;
+  
   switch (argc) {
   case 0:
-    return v8_ref_new(klass, Object::New());
+    self = v8_ref_new(klass, Object::New());
+    break;
   case 1:
-    return v8_ref_new(klass, to_v8_object(argv[0]));
+    self = v8_ref_new(klass, to_v8_object(argv[0]));
+    break;
   default:
     rb_raise(rb_eArgError, "wrong number of arguments (%d for 0..1)", argc);
     return Qnil;
   }
+
+  v8_set_peer(self);
+  return self;
 }
 
 /*
