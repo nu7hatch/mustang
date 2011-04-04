@@ -5,22 +5,14 @@
 #include "v8_string.h"
 #include "v8_macros.h"
 
+#include <string.h>
+
 using namespace v8;
 
 VALUE rb_cV8Object;
 UNWRAPPER(Object);
 
 /* Typecasting helpers */
-
-VALUE rb_method_normalize_name(VALUE meth)
-{
-  VALUE rbname = rb_any_to_s(meth);
-  VALUE jsname = rbname; //rb_str_gsub(rb_any_to_s(meth), rb_reg_new("[\\?\\!\\=]", 8, 0), rb_str_new2(""));
-
-  // do stuff with methods...
-  
-  return jsname;
-}
 
 Handle<Value> to_v8_object(VALUE value)
 {
@@ -38,14 +30,9 @@ Handle<Value> to_v8_object(VALUE value)
     }
   } else {
     obj->SetHiddenValue(String::New("RUBY_OBJECT"), External::Wrap((void*)value));
-
-    VALUE methods_from_super = Qfalse;
-    VALUE method_names = rb_class_instance_methods(1, &methods_from_super, rb_obj_class(value));
-
-    for (int i = 0; i < RARRAY_LEN(method_names); i++) {
-      VALUE mname = rb_ary_entry(method_names, i);
-      obj->Set(to_v8(mname), to_v8(rb_obj_method(value, mname)));
-    }
+    
+    // Rest of conversion stuff is handled in ruby code. Check the lib/v8/object.rb
+    // for details... 
   }
   
   return obj;

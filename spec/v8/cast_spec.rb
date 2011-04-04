@@ -147,8 +147,8 @@ describe "Typecasting" do
       end
 
       cxt[:foo] = obj = Obj.new
-      cxt[:foo].bar.should_not be
-      cxt.eval("foo.bar()", "<eval>").should be_null
+      cxt[:foo].bar.should be_undefined
+      cxt.eval("foo.bar()", "<eval>").should_not be
       f.bar = 1
       cxt.eval("foo.bar()", "<eval>").should == 1
       cxt.eval("foo.set_bar(2)", "<eval>");

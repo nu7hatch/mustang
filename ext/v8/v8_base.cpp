@@ -2,6 +2,7 @@
 #include "v8_cast.h"
 #include "v8_base.h"
 #include "v8_errors.h"
+#include "v8_value.h"
 #include "v8_macros.h"
 
 using namespace v8;
@@ -14,6 +15,18 @@ VALUE rb_cV8Null;
 VALUE rb_mSingleton = rb_eval_string("require 'singleton'; Singleton");
 
 /* V8::Data methods */
+
+/*
+ * call-seq:
+ *   data.value?  => true or false
+ *
+ * Returns <code>true</code> when value is a javascript value..
+ *
+ */
+static VALUE rb_v8_data_value_p(VALUE self)
+{
+  return rb_obj_is_kind_of(self, rb_cV8Value);
+}
 
 /*
  * call-seq:
@@ -108,6 +121,7 @@ void Init_V8_Data()
   rb_define_method(rb_cV8Data, "null?", RUBY_METHOD_FUNC(rb_v8_data_null_p), 0);
   rb_define_method(rb_cV8Data, "empty?", RUBY_METHOD_FUNC(rb_v8_data_empty_p), 0);
   rb_define_method(rb_cV8Data, "undefined?", RUBY_METHOD_FUNC(rb_v8_data_undefined_p), 0);
+  rb_define_method(rb_cV8Data, "value?", RUBY_METHOD_FUNC(rb_v8_data_value_p), 0);
 }
 
 /* V8::Empty initializer */

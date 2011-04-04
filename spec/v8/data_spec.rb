@@ -26,4 +26,9 @@ describe V8::Data do
       subject.should_not be_empty
     end
   end
+
+  describe "#value?" do
+    it "returns true when data is kind of value"
+    it "returns false when data is not kind of value"
+  end
 end

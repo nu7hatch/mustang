@@ -1,4 +1,5 @@
 require 'v8'
+require 'v8/context'
 require 'v8/object'
 require 'v8/string'
 require 'v8/integer'

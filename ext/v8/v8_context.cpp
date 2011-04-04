@@ -9,14 +9,6 @@ using namespace v8;
 VALUE rb_cV8Context;
 UNWRAPPER(Context);
 
-/* Local helpers */
-
-Handle<Object> v8_context_get_prototype(VALUE self)
-{
-  HandleScope scope;
-  return Handle<Object>::Cast(unwrap(self)->Global()->GetPrototype());
-}
-
 /* V8::Context methods */
 
 /*
@@ -111,40 +103,16 @@ static VALUE rb_v8_context_evaluate(VALUE self, VALUE source, VALUE filename)
 
 /*
  * call-seq:
- *   cxt[key]      => value
- *   cxt.get(key)  => value
+ *   cxt.prototype  => obj
  *
- * Get given property from the global object proto.
- *
- *   cxt = V8::Context.new
- *   cxt.eval("var foo = 'bar'")
- *   cxt["foo"] # => 'bar'
+ * Returns prototype object of current context. 
  *
  */
-static VALUE rb_v8_context_get(VALUE self, VALUE key)
+VALUE rb_v8_context_prototype(VALUE self)
 {
   HandleScope scope;
-  return to_ruby(v8_context_get_prototype(self)->Get(to_v8(key)));
-}
-
-/*
- * call-seq:
- *   cxt[key] = value     => value
- *   cxt.set(key, value)  => value
- *
- * Set given property within the global object proto.
- *
- *   cxt = V8::Context.new
- *   cxt["foo"] = "bar"
- *   cxt.eval("foo") # => 'bar'
- *
- */
-static VALUE rb_v8_context_set(VALUE self, VALUE key, VALUE value)
-{
-  HandleScope scope;
-  Handle<Value> _value = to_v8(value);
-  v8_context_get_prototype(self)->Set(to_v8(key), _value);
-  return to_ruby(_value);
+  Handle<Object> proto(Object::Cast(*unwrap(self)->Global()->GetPrototype()));
+  return to_ruby(proto);
 }
 
 /*
@@ -196,10 +164,7 @@ void Init_V8_Context()
   rb_define_singleton_method(rb_cV8Context, "new", RUBY_METHOD_FUNC(rb_v8_context_new), 0);
   rb_define_method(rb_cV8Context, "evaluate", RUBY_METHOD_FUNC(rb_v8_context_evaluate), 2);
   rb_define_method(rb_cV8Context, "eval", RUBY_METHOD_FUNC(rb_v8_context_evaluate), 2);
-  rb_define_method(rb_cV8Context, "[]", RUBY_METHOD_FUNC(rb_v8_context_get), 1);
-  rb_define_method(rb_cV8Context, "get", RUBY_METHOD_FUNC(rb_v8_context_get), 1);
-  rb_define_method(rb_cV8Context, "[]=", RUBY_METHOD_FUNC(rb_v8_context_set), 2);
-  rb_define_method(rb_cV8Context, "set", RUBY_METHOD_FUNC(rb_v8_context_set), 2);
+  rb_define_method(rb_cV8Context, "prototype", RUBY_METHOD_FUNC(rb_v8_context_prototype), 0);
   rb_define_method(rb_cV8Context, "global", RUBY_METHOD_FUNC(rb_v8_context_global), 0);
   rb_define_method(rb_cV8Context, "enter", RUBY_METHOD_FUNC(rb_v8_context_enter), 0);
   rb_define_method(rb_cV8Context, "exit", RUBY_METHOD_FUNC(rb_v8_context_exit), 0);

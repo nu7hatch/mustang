@@ -2,7 +2,6 @@ require 'support/delegated'
 
 module V8
   class Object
-=begin
     class << self
       alias_method :native_new, :new
 
@@ -10,7 +9,7 @@ module V8
         orig = args.first
         obj = native_new(*args)
 
-        unless orig.kind_of?(Hash)
+        if !orig.nil? and !orig.v8? and !orig.is_a?(Hash)
           orig.class.instance_methods(false).each { |meth|
             jsmeth = to_js_method_name(meth)
             obj[jsmeth] = orig.method(meth)
@@ -31,14 +30,24 @@ module V8
         jsname
       end
     end
-=end
 
-    #def respond_to?(meth)
-    # !self[meth].nil?
-    #end
+    def respond_to?(meth)
+      !self[meth].nil?
+    end
 
-    #def method_missing(meth, *args, &block)
-    #end
+    def method_missing(meth, *args, &block)
+      if respond_to?(meth)
+        property = get(meth)
+
+        if property.v8? and property.value? and property.function?
+          return property.call_on(self, *args, &block)
+        else
+          return property
+        end
+      end
+
+      super
+    end
 
     include Comparable
     include Enumerable
