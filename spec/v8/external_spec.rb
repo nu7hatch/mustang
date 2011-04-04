@@ -30,10 +30,15 @@ describe V8::External do
     end
   end
 
-  describe "in context" do
-    it "object reflected twice should be explicitly the same" do
-      cxt.eval("foo = {a:1, b:2}", "<eval>")
-      cxt[:foo].object_id.should == cxt[:foo].object_id
+  describe "an instance" do
+    it "is delegated properly" do
+      class Bar
+        def bar; return 'bar'; end
+      end
+
+      obj = V8::External.new(Bar.new)
+      obj.delegate.bar.should == 'bar'
+      obj.bar.should == 'bar'
     end
   end
 end
