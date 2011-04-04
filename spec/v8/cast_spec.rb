@@ -134,5 +134,26 @@ describe "Typecasting" do
       cxt.eval("'FooBAR'.match(foo);", "<eval>").should be
       cxt.eval("'FoaaoBARaa'.match(foo);", "<eval>").should be_null
     end
+    
+    it "converts time properly" do
+      cxt[:foo] = now = Time.now
+      cxt.eval("foo == #{Time.now.to_s}", "<eval>").should be
+    end
+
+    it "converts objects properly" do
+      class Obj
+        attr_accessor :bar
+        def foo(a); a+bar; end
+      end
+
+      cxt[:foo] = obj = Obj.new
+      cxt[:foo].bar.should_not be
+      cxt.eval("foo.bar()", "<eval>").should be_null
+      f.bar = 1
+      cxt.eval("foo.bar()", "<eval>").should == 1
+      cxt.eval("foo.set_bar(2)", "<eval>");
+      f.bar.should == 2
+      cxt.eval("foo.foo(2)", "<eval>").should == 4
+    end
   end
 end

@@ -66,7 +66,7 @@ Handle<Value> to_v8(VALUE value)
     } else if (rb_obj_is_kind_of(value, rb_cV8Empty)) {
       return Handle<Value>();
     } else {
-      return to_v8(rb_v8_external_new2(value));
+      return to_v8(rb_v8_object_new2(value));
     }
   }
 }

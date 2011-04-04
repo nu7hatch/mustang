@@ -2,6 +2,7 @@ require 'support/delegated'
 
 module V8
   class Object
+=begin
     class << self
       alias_method :native_new, :new
 
@@ -10,7 +11,7 @@ module V8
         obj = native_new(*args)
 
         unless orig.kind_of?(Hash)
-          (orig.public_methods - Object.public_methods).each { |meth|
+          orig.class.instance_methods(false).each { |meth|
             jsmeth = to_js_method_name(meth)
             obj[jsmeth] = orig.method(meth)
             obj[jsmeth].bind(orig)
@@ -30,6 +31,7 @@ module V8
         jsname
       end
     end
+=end
 
     #def respond_to?(meth)
     # !self[meth].nil?

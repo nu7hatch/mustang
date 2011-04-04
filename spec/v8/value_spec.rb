@@ -20,7 +20,7 @@ describe V8::Value do
     end
 
     it "returns false when value is not an instance of V8::Object" do
-      subject.new(Object.new).should_not be_object
+      V8::External.new(Object.new).should_not be_object
     end
 
     it "is aliased with #obj?" do
@@ -123,8 +123,13 @@ describe V8::Value do
   end
 
   describe "#date?" do
-    it "returns true when value is an instance of V8::Date"
-    it "returns false when value is not an instance of V8::Date"
+    it "returns true when value is an instance of V8::Date" do
+      V8::Date.new(Time.now).should be_date
+    end
+
+    it "returns false when value is not an instance of V8::Date" do
+      V8::Integer.new(1).should_not be_date
+    end
   end
 
   describe "#to_integer" do
