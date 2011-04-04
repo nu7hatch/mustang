@@ -12,3 +12,4 @@ tmp
 eproject.cfg
 .eproject
 *.bundle
+.svn
