@@ -16,15 +16,21 @@ Handle<Value> to_v8_object(VALUE value)
 {
   HandleScope scope;
   Local<Object> obj = Object::New();
-  
-  VALUE hsh = rb_funcall2(value, rb_intern("to_hash"), 0, NULL);
-  VALUE keys = rb_funcall2(value, rb_intern("keys"), 0, NULL);
 
-  // TODO: for sure there is more efficient way to retrieve all hash
-  // values and keys, some enumerator/iterator?
-  for (int i = 0; i < RARRAY_LEN(keys); i++) {
-    VALUE key = rb_ary_entry(keys, i);
-    obj->Set(to_v8(key)->ToString(), to_v8(rb_hash_aref(hsh, key)));
+  if (rb_obj_is_kind_of(value, rb_cHash)) {
+    VALUE keys = rb_funcall2(value, rb_intern("keys"), 0, NULL);
+
+    // TODO: for sure there is more efficient way to retrieve all hash
+    // values and keys, some enumerator/iterator?
+    for (int i = 0; i < RARRAY_LEN(keys); i++) {
+      VALUE key = rb_ary_entry(keys, i);
+      obj->Set(to_v8(key)->ToString(), to_v8(rb_hash_aref(value, key)));
+    }
+  } else {
+    obj->SetHiddenValue(String::New("RUBY_OBJECT"), External::Wrap((void*)value));
+
+    // Reflection of objects different than hash will be done on the ruby side.
+    // See `lib/v8/object.rb` for details...
   }
   
   return obj;
@@ -51,6 +57,7 @@ static VALUE rb_v8_object_new(int argc, VALUE *argv, VALUE klass)
     break;
   case 1:
     self = v8_ref_new(klass, to_v8_object(argv[0]));
+    rb_iv_set(self, "@origin", argv[0]);
     break;
   default:
     rb_raise(rb_eArgError, "wrong number of arguments (%d for 0..1)", argc);
