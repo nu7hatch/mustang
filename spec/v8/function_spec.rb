@@ -37,6 +37,23 @@ describe V8::Function do
     end
   end
 
+  describe "#call_on" do
+    context "when recv is nil" do
+      it "executes function on global object" do
+        cxt.global[:foo] = 'bar' 
+        func = cxt.eval("var f = function(foo) { return this.foo+foo }; f;", "<eval>")
+        func.call_on(nil, 'bar').should == 'barbar'
+      end
+    end
+
+    context "when recv given" do
+      it "executes function on it" do
+        func = cxt.eval("var f = function(foo) { return this+foo }; f;", "<eval>")
+        func.call_on(10.to_v8, 10).should == 20
+      end
+    end
+  end
+
   describe "#call" do
     it "exectutes referenced javascript function" do
       func = cxt.eval("var f = function(foo, bar) { return foo+bar }; f;", "<eval>")

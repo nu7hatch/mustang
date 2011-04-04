@@ -83,31 +83,35 @@ static VALUE rb_v8_function_new(int argc, VALUE *argv, VALUE klass)
 
 /*
  * call-seq:
- *   func.call(*args)  => result 
+ *   func.call_on(recv, *args)  => result
  *
- * Executes function with given arguments. If function is bound to any receiver
- * then is executed within its context. When function code is broken then proper
- * JavaScript error will be returned. 
+ * Executes function with given arguments on specified receiver. When function code is
+ * broken then proper JavaScript error will be returned. 
  *
  */
-static VALUE rb_v8_function_call(int argc, VALUE *args, VALUE self)
+static VALUE rb_v8_function_call_on(int argc, VALUE *argv, VALUE self)
 {
   HandleScope scope;
   TryCatch try_catch;
-  
-  VALUE recv = rb_iv_get(self, "@receiver");
 
+  if (argc < 1) {
+    rb_raise(rb_eArgError, "wrong number of arguments (%d for 1)", FIX2INT(argc));
+    return Qnil;
+  }
+  
+  VALUE recv = argv[0];
+  
   Handle<Object> this_obj =
     NIL_P(recv) ? Context::GetEntered()->Global() :
     unwrap(recv)->ToObject();
   
-  Handle<Value> fargs[argc];
+  Handle<Value> args[argc-1];
   
-  for (int i = 0; i < argc; i++) {
-    fargs[i] = to_v8(args[i]);
+  for (int i = 1; i < argc; i++) {
+    args[i-1] = to_v8(argv[i]);
   }
   
-  Handle<Value> result = unwrap(self)->Call(this_obj, argc, fargs);
+  Handle<Value> result = unwrap(self)->Call(this_obj, argc-1, args);
 
   if (try_catch.HasCaught()) {
     return rb_v8_error_new3(try_catch);
@@ -170,7 +174,7 @@ void Init_V8_Function()
   rb_cV8Function = rb_define_class_under(rb_mV8, "Function", rb_cV8Object);
   rb_define_singleton_method(rb_cV8Function, "new", RUBY_METHOD_FUNC(rb_v8_function_new), -1);
   rb_define_method(rb_cV8Function, "bind", RUBY_METHOD_FUNC(rb_v8_function_bind), 1);
-  rb_define_method(rb_cV8Function, "call", RUBY_METHOD_FUNC(rb_v8_function_call), -1);
+  rb_define_method(rb_cV8Function, "call_on", RUBY_METHOD_FUNC(rb_v8_function_call_on), -1);
   rb_define_method(rb_cV8Function, "name", RUBY_METHOD_FUNC(rb_v8_function_get_name), 0);
   rb_define_method(rb_cV8Function, "name=", RUBY_METHOD_FUNC(rb_v8_function_set_name), 1);
   rb_define_attr(rb_cV8Function, "receiver", 1, 0);
