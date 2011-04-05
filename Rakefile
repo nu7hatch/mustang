@@ -18,8 +18,6 @@ begin
   Rake::ExtensionTask.new("v8") do |ext|
     ext.lib_dir = 'lib'
     ext.source_pattern = "*.{cpp,h}"
-    #ext.config_options << '--with-v8-include'
-    #ext.config_options << '--with-v8-lib'
   end
 rescue LoadError
   STDERR.puts "Run `gem install rake-compiler` to install 'rake-compiler'."

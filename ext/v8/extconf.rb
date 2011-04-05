@@ -6,7 +6,7 @@ def darwin?
 end
 
 def cpu_x64?
-  unless defined?(RUBY_ENGINE) and RUBY_ENGINE == 'rbx'
+  if defined?(RUBY_ENGINE) and RUBY_ENGINE != 'rbx'
     !!(RbConfig::MAKEFILE_CONFIG['arch'] =~ /x86_64/ ||
        RbConfig::MAKEFILE_CONFIG['target_cpu'] == 'x86_64' ||
        RbConfig::MAKEFILE_CONFIG['build_cpu'] == 'x86_64' ||
@@ -22,34 +22,37 @@ def make_sure_scons_installed!
   end
 end
 
-def compile_v8!(v8_dir)
-  Dir.chdir v8_dir do 
+def compile_vendor_v8!(dir)
+  arch = cpu_x64? ? 'x64' : 'ia32' 
+  flags = '-fPIC -fno-builtin-memcpy -shared'
+
+  Dir.chdir dir do 
     if Dir["**/libv8.a"].empty?
-      make_sure_scons_installed!
-      defaults, ENV['CCFLAGS'] = ENV['CCFLAGS'], V8_FLAGS
-      build_cmd = "scons mode=release snapshot=off library=static arch=#{V8_ARCH}"
-      puts build_cmd
-      system build_cmd
-      ENV['CCFLAGS'] = defaults
+      begin
+        make_sure_scons_installed!
+        defaults, ENV['CCFLAGS'] = ENV['CCFLAGS'], flags
+        build_cmd = "scons mode=release snapshot=off library=static arch=#{arch}"
+        puts build_cmd
+        system build_cmd
+      ensure
+        ENV['CCFLAGS'] = defaults
+      end
     end
   end
 end
 
 V8_DIR = File.expand_path("../../../vendor/v8", __FILE__)
-V8_ARCH = cpu_x64? ? 'x64' : 'ia32' 
-V8_FLAGS = '-fPIC -fno-builtin-memcpy'
-           
-compile_v8!(V8_DIR)
+inc, lib = dir_config('v8', File.join(V8_DIR, 'include'), V8_DIR)
 
-dir_config('mustang/v8')
-find_header('v8.h', File.join(V8_DIR, "include"))
+if V8_DIR == lib
+  compile_vendor_v8!(V8_DIR)
+end
+
+find_library('v8', nil, lib)
 have_library('pthread')
-have_library('objc') if darwin?
+have_header('v8.h')
 
-CONFIG['LDSHARED'] = '$(CXX) -shared' unless darwin?
-$LOCAL_LIBS << Dir[File.join(V8_DIR, "**/**/libv8.a")].first
-
-%w[-Wall -g -rdynamic -fPIC].each { |flag|
+%w[-Wall -g -rdynamic -fPIC].each { |flag| 
   $CPPFLAGS += " #{flag}" unless $CPPFLAGS.include?(flag)
 }
 
