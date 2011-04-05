@@ -1,8 +1,16 @@
+This code is proudly sponsored by [Cubox, Agile Rails Devshop](http://cuboxsa.com)
+
 # Mustang - V8 engine in Ruby's body
 
 Mustang is ruby proxy library for awesome Google V8 JavaScript engine. 
 
 ## Installation
+
+Using rubygems:
+
+    $ gem install mustang
+
+Manually:
 
     $ git clone git://github.com/nu7hatch/mustang.git
     $ cd mustang
