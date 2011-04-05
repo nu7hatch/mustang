@@ -1,10 +1,16 @@
-This code is proudly sponsored by [Cubox, Agile Rails Devshop](http://cuboxsa.com)
+Mustang development is proudly sponsored by [Cubox, Agile Rails Devshop](http://cuboxsa.com)
 
 # Mustang - V8 engine in Ruby's body
 
 Mustang is ruby proxy library for awesome Google V8 JavaScript engine. 
 
 ## Installation
+
+Before you install mustang gem make sure you have `scons` installed.
+
+    $ sudo apt-get install scons # on debian
+    $ sudo pacman -S scons       # on archlinux
+    $ brew install scons         # on mac...
 
 Using rubygems:
 
@@ -27,6 +33,10 @@ For now it's only proof of concept. It implements very simple evaluation of java
     cxt.eval("'Hello' + ' World!';") # => 'Hello World!'
     cxt.eval("var a=1;")
     cxt.eval("a+5;") # => 6
+
+    cxt[:puts] = method(:puts)
+    cxt.eval("puts(a)") # displays "1" on the screen
+    cxt[:a] # => 1
 
 ## Note on Patches/Pull Requests
  
