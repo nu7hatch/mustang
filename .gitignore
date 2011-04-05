@@ -13,3 +13,5 @@ eproject.cfg
 .eproject
 *.bundle
 .svn
+.DS_Store
+*.gem

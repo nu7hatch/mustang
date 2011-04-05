@@ -7,13 +7,6 @@ rescue LoadError
 end
 
 begin
-  require 'ore/tasks'
-  Ore::Tasks.new
-rescue LoadError
-  STDERR.puts "Run `gem install ore-tasks` to install 'ore/tasks'."
-end
-
-begin
   require 'rake/extensiontask'
   Rake::ExtensionTask.new("v8") do |ext|
     ext.lib_dir = 'lib'
@@ -50,9 +43,10 @@ Rake::RDocTask.new do |rdoc|
   rdoc.rdoc_files.include('lib/**/*.rb')
 end
 
-task :init_mustang do
+desc "Opens console with loaded mustang env."
+task :console do
   require 'mustang'
-  $c = Mustang::Context.new
-end 
-
-Rake::Task[:console].prerequisites << :init_mustang
+  require 'irb'
+  ARGV.clear
+  IRB.start
+end
