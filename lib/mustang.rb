@@ -15,6 +15,7 @@ require 'support/delegated'
 
 require 'core_ext/object'
 require 'core_ext/class'
+require 'core_ext/symbol'
 
 require 'mustang/context'
 

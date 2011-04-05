@@ -138,13 +138,13 @@ describe "Typecasting" do
         def foo(a); a+bar; end
       end
 
-      cxt[:foo] = obj = Obj.new
-      cxt[:foo].bar.should be_undefined
-      cxt.eval("foo.bar()", "<eval>").should_not be
-      f.bar = 1
+      cxt[:foo] = foo = Obj.new
+      cxt[:foo].bar.should be_null
+      cxt.eval("foo.bar()", "<eval>").should be_null
+      foo.bar = 1
       cxt.eval("foo.bar()", "<eval>").should == 1
       cxt.eval("foo.set_bar(2)", "<eval>");
-      f.bar.should == 2
+      foo.bar.should == 2
       cxt.eval("foo.foo(2)", "<eval>").should == 4
     end
   end

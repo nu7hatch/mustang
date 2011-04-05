@@ -4,42 +4,22 @@ module V8
   class Object
     class << self
       alias_method :native_new, :new
-
-      def new(*args)
-        orig = args.first
-        obj = native_new(*args)
-
-        if !orig.nil? and !orig.v8? and !orig.is_a?(Hash)
-          orig.class.instance_methods(false).each { |meth|
-            jsmeth = to_js_method_name(meth)
-            obj[jsmeth] = orig.method(meth)
-            obj[jsmeth].bind(orig)
-          }
-        end
-
-        obj
-      end
-
-      private
-
-      def to_js_method_name(name)
-        jsname = name.to_s.dup
-        jsname = jsname.gsub(/\!$/, "") if jsname.include?("!")
-        jsname = "is_#{jsname.gsub(/\?$/, "")}" if jsname.include?("?")
-        jsname = "set_#{jsname.gsub(/\=$/, "")}" if jsname.include?("=")
-        jsname
+      
+      def new(*args, &block)
+        res = native_new(*args)
+        res.send(:reflect_from, args.first)        
       end
     end
-
+    
     def respond_to?(meth)
-      !self[meth].nil?
+      !self[meth].undefined? or super
     end
 
     def method_missing(meth, *args, &block)
       if respond_to?(meth)
-        property = get(meth)
+        property = self[meth]
 
-        if property.v8? and property.value? and property.function?
+        if property.is_a?(V8::Function)
           return property.call_on(self, *args, &block)
         else
           return property
@@ -67,6 +47,20 @@ module V8
 
     def delegate
       to_hash
+    end
+
+    private
+
+    def reflect_from(obj)
+      if !obj.nil? and !obj.v8? and !obj.is_a?(Hash)
+        obj.class.declared_methods.each { |meth|
+          if func_name = meth.to_sym.to_js_func_name
+            func = set(func_name, obj.method(meth))
+            func.bind(obj)
+          end
+        }
+      end
+      self
     end
   end # Object
 end # V8

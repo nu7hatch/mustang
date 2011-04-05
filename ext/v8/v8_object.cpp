@@ -147,12 +147,14 @@ static VALUE rb_v8_object_keys(VALUE self)
 
 VALUE rb_v8_object_new2(VALUE data)
 {
-  return rb_v8_object_new(1, &data, rb_cV8Object);
+  // Here we have to call #new using rb_funcall because new is extended on
+  // the ruby side. 
+  return rb_funcall2(rb_cV8Object, rb_intern("new"), 1, &data);
 }
 
 VALUE rb_v8_object_new3()
 {
-  return rb_v8_object_new(0, NULL, rb_cV8Object);
+  return rb_funcall2(rb_cV8Object, rb_intern("new"), 0, NULL);
 }
 
 
