@@ -7,12 +7,12 @@ using namespace v8;
 
 /* V8::Data class */
 RUBY_EXTERN VALUE rb_cV8Data;
-/* V8::Empty singleton */
-RUBY_EXTERN VALUE rb_cV8Empty;
-/* V8::Undefined singleton */
-RUBY_EXTERN VALUE rb_cV8Undefined;
-/* V8::Null singleton */
-RUBY_EXTERN VALUE rb_cV8Null;
+/* V8::EmptyClass class */
+RUBY_EXTERN VALUE rb_cV8EmptyClass;
+/* V8::UndefinedClass class */
+RUBY_EXTERN VALUE rb_cV8UndefinedClass;
+/* V8::NullClass class */
+RUBY_EXTERN VALUE rb_cV8NullClass;
 
 /* API */
 void Init_V8_Data();

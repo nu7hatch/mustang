@@ -3,8 +3,8 @@ require File.dirname(__FILE__) + '/../spec_helper'
 describe V8::Undefined do
   setup_context
 
-  it "includes Singleton" do
-    subject.class.included_modules.should include(Singleton)
+  it "is kind of V8::UndefinedClass" do
+    subject.should be_kind_of(V8::UndefinedClass)
   end
 
   describe "#null?" do

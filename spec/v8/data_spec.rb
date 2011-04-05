@@ -28,7 +28,12 @@ describe V8::Data do
   end
 
   describe "#value?" do
-    it "returns true when data is kind of value"
-    it "returns false when data is not kind of value"
+    it "returns true when data is kind of value" do
+      V8::Integer.new(1).should be_value
+    end
+
+    it "returns false when data is not kind of value" do
+      V8::Undefined.should_not be_value
+    end
   end
 end

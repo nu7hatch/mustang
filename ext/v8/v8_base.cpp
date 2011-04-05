@@ -8,11 +8,9 @@
 using namespace v8;
 
 VALUE rb_cV8Data;
-VALUE rb_cV8Empty;
-VALUE rb_cV8Undefined;
-VALUE rb_cV8Null;
-
-VALUE rb_mSingleton = rb_eval_string("require 'singleton'; Singleton");
+VALUE rb_cV8EmptyClass;
+VALUE rb_cV8UndefinedClass;
+VALUE rb_cV8NullClass;
 
 /* V8::Data methods */
 
@@ -49,7 +47,7 @@ static VALUE rb_v8_data_error_p(VALUE self)
  */
 static VALUE rb_v8_data_null_p(VALUE self)
 {
-  return rb_obj_is_kind_of(self, rb_cV8Null);
+  return rb_obj_is_kind_of(self, rb_cV8NullClass);
 }
 
 /*
@@ -61,7 +59,7 @@ static VALUE rb_v8_data_null_p(VALUE self)
  */
 static VALUE rb_v8_data_empty_p(VALUE self)
 {
-  return rb_obj_is_kind_of(self, rb_cV8Empty);
+  return rb_obj_is_kind_of(self, rb_cV8EmptyClass);
 }
 
 /*
@@ -73,7 +71,7 @@ static VALUE rb_v8_data_empty_p(VALUE self)
  */
 static VALUE rb_v8_data_undefined_p(VALUE self)
 {
-  return rb_obj_is_kind_of(self, rb_cV8Undefined);
+  return rb_obj_is_kind_of(self, rb_cV8UndefinedClass);
 }
 
 /* V8::Null methods */
@@ -127,23 +125,23 @@ void Init_V8_Data()
 /* V8::Empty initializer */
 void Init_V8_Empty()
 {
-  rb_cV8Empty = rb_define_class_under(rb_mV8, "Empty", rb_cV8Data);
-  rb_include_module(rb_cV8Empty, rb_mSingleton);
-  rb_define_method(rb_cV8Empty, "to_s", RUBY_METHOD_FUNC(rb_v8_empty_to_s), 0);  
+  rb_cV8EmptyClass = rb_define_class_under(rb_mV8, "EmptyClass", rb_cV8Data);
+  rb_define_method(rb_cV8EmptyClass, "to_s", RUBY_METHOD_FUNC(rb_v8_empty_to_s), 0);
+  rb_define_const(rb_mV8, "Empty", rb_funcall2(rb_cV8EmptyClass, rb_intern("new"), 0, NULL));
 }
 
 /* V8::Undefined initializer */
 void Init_V8_Undefined()
 {
-  rb_cV8Undefined = rb_define_class_under(rb_mV8, "Undefined", rb_cV8Data);
-  rb_include_module(rb_cV8Undefined, rb_mSingleton);
-  rb_define_method(rb_cV8Undefined, "to_s", RUBY_METHOD_FUNC(rb_v8_undefined_to_s), 0);
+  rb_cV8UndefinedClass = rb_define_class_under(rb_mV8, "UndefinedClass", rb_cV8Data);
+  rb_define_method(rb_cV8UndefinedClass, "to_s", RUBY_METHOD_FUNC(rb_v8_undefined_to_s), 0);
+  rb_define_const(rb_mV8, "Undefined", rb_funcall2(rb_cV8UndefinedClass, rb_intern("new"), 0, NULL));
 }
 
 /* V8::Null initializer */
 void Init_V8_Null()
 {
-  rb_cV8Null = rb_define_class_under(rb_mV8, "Null", rb_cV8Data);
-  rb_include_module(rb_cV8Null, rb_mSingleton);
-  rb_define_method(rb_cV8Null, "to_s", RUBY_METHOD_FUNC(rb_v8_null_to_s), 0);  
+  rb_cV8NullClass = rb_define_class_under(rb_mV8, "NullClass", rb_cV8Data);
+  rb_define_method(rb_cV8NullClass, "to_s", RUBY_METHOD_FUNC(rb_v8_null_to_s), 0);  
+  rb_define_const(rb_mV8, "Null", rb_funcall2(rb_cV8NullClass, rb_intern("new"), 0, NULL));
 }

@@ -59,11 +59,11 @@ Handle<Value> to_v8(VALUE value)
       return to_v8(rb_v8_function_new2(value));
     } else if (rb_obj_is_kind_of(value, rb_cV8Value)) {
       return v8_ref_get<Value>(value);
-    } else if (rb_obj_is_kind_of(value, rb_cV8Undefined)) {
+    } else if (rb_obj_is_kind_of(value, rb_cV8UndefinedClass)) {
       return Undefined();
-    } else if (rb_obj_is_kind_of(value, rb_cV8Null)) {
+    } else if (rb_obj_is_kind_of(value, rb_cV8NullClass)) {
       return Null();
-    } else if (rb_obj_is_kind_of(value, rb_cV8Empty)) {
+    } else if (rb_obj_is_kind_of(value, rb_cV8EmptyClass)) {
       return Handle<Value>();
     } else {
       return to_v8(rb_v8_object_new2(value));
@@ -74,11 +74,11 @@ Handle<Value> to_v8(VALUE value)
 VALUE to_ruby(Handle<Value> value)
 {
   if (value.IsEmpty()) {
-    return rb_funcall(rb_cV8Empty, rb_intern("new"), 0, NULL);
+    return rb_const_get(rb_mV8, rb_intern("Empty"));
   } else if (value->IsUndefined()) {
-    return rb_funcall(rb_cV8Undefined, rb_intern("new"), 0, NULL);
+    return rb_const_get(rb_mV8, rb_intern("Undefined"));
   } else if (value->IsNull()) {
-    return rb_funcall(rb_cV8Null, rb_intern("new"), 0, NULL);
+    return rb_const_get(rb_mV8, rb_intern("Null"));
   } else if (value->IsBoolean()) {
     return value->BooleanValue() ? Qtrue : Qfalse;
   } else if (value->IsDate()) {

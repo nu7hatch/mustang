@@ -20,13 +20,13 @@ describe "Typecasting" do
   context "from js to ruby" do
     it "converts null properly" do
       null = cxt.eval("null", "<eval>")
-      null.should be_kind_of(V8::Null)
+      null.should == V8::Null
       null.should be_null
     end
 
     it "converts undefined value to nil" do
       undefined = cxt.eval("undefined", "<eval>")
-      undefined.should be_kind_of(V8::Undefined)
+      undefined.should == V8::Undefined
       undefined.should be_undefined
     end
 

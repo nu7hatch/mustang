@@ -3,8 +3,8 @@ require File.dirname(__FILE__) + '/../spec_helper'
 describe V8::Null do
   setup_context
 
-  it "includes Singleton" do
-    subject.class.included_modules.should include(Singleton)
+  it "is kind of V8::NullClass" do
+    subject.should be_kind_of(V8::NullClass)
   end
 
   describe "#null?" do
