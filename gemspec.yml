@@ -1,5 +1,5 @@
 name: mustang
-version: 0.0.1
+version: 0.1.0
 summary: Awesome V8 JavaScript engine embedded into Ruby's shiny body.
 description:
   Ruby proxy library for Google V8 JavaScript engine. 
