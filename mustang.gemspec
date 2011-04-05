@@ -3,8 +3,8 @@
 begin
   Ore::Specification.new do |gemspec|
     gemspec.files += `git ls-files`
-    gemspec.extensions << "ext/mustang/extconf.rb"
-    gemspec.require_paths = ["lib", "ext"]
+    gemspec.extensions << "ext/v8/extconf.rb"
+    gemspec.require_paths = ["lib"]
   end
 rescue NameError
   begin
