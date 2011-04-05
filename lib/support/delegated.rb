@@ -22,4 +22,4 @@ module Delegated
   def to_s # :nodoc:
     delegate.to_s
   end
-end
+end # Delegated

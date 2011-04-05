@@ -11,4 +11,4 @@ class Class
 
     result
   end
-end
+end # Class

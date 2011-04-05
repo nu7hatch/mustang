@@ -9,4 +9,4 @@ class Object
   def v8?
     kind_of?(V8::Data)
   end
-end
+end # Object

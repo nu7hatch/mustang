@@ -1,13 +1,5 @@
 require File.dirname(__FILE__) + '/../spec_helper'
 
-describe Object do
-  setup_context
-
-  it "includes V8::Cast module" do
-    subject.respond_to?(:to_v8)
-  end
-end
-
 describe V8::Cast do
   setup_context
 
