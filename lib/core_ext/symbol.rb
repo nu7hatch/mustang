@@ -13,6 +13,11 @@ class Symbol
     js = "#{js}_bang" if js =~ /\!$/ 
     js = "is_#{js}" if js =~ /\?$/ 
     js = js.gsub(/[^\w\d\_]+/, "")
-    js.empty? ? nil : js.to_sym 
+
+    if js.empty? || (js == 'set_' && self.to_s != 'set_') 
+      return nil
+    else 
+      return js.to_sym
+    end
   end
 end # Symbol
