@@ -9,6 +9,6 @@ class Class
       klass = klass.superclass
     end
 
-    result
+    result.map { |m| m.to_sym }
   end
 end # Class
