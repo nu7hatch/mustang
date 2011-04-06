@@ -78,6 +78,7 @@ static VALUE rb_v8_function_new(int argc, VALUE *argv, VALUE klass)
 
   VALUE self = v8_ref_new(klass, to_v8_function(orig), orig);
   rb_iv_set(self, "@origin", orig);
+  rb_iv_set(self, "@receiver", Qnil);
   v8_set_peer(self);
 
   return self;

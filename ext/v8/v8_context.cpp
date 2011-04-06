@@ -11,6 +11,8 @@ UNWRAPPER(Context);
 
 /* V8::Context methods */
 
+static VALUE rb_v8_context_enter(VALUE self);
+
 /*
  * call-seq:
  *   V8::Context.new  => new_context
@@ -24,6 +26,7 @@ static VALUE rb_v8_context_new(VALUE self)
   Persistent<Context> context(Context::New());
 
   VALUE ref = v8_ref_new(self, context);
+  rb_v8_context_enter(ref);
   rb_iv_set(ref, "@errors", rb_ary_new());
 
   context.Dispose();
@@ -154,7 +157,7 @@ static VALUE rb_v8_context_exit(VALUE self)
   HandleScope scope;
   Handle<Context> context;
   
-  if (Context::InContext() && context == Context::GetEntered()) {
+  if (Context::InContext()) {
     context->Exit();
   }
   

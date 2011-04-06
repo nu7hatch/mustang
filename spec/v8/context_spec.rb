@@ -1,6 +1,13 @@
 require File.dirname(__FILE__) + '/../spec_helper'
 
 describe V8::Context do
+  describe ".new" do
+    it "creates new context and enters it" do
+      cxt = V8::Context.new
+      cxt.should be_entered
+    end
+  end
+
   describe "#evaluate" do
     it "evaluates given javascript source" do
       subject.evaluate("var a = 'foo'; a;", "<eval>").should == 'foo'
@@ -55,6 +62,7 @@ describe V8::Context do
     context "when block given" do
       it "enters to context evaluates passed block, and exits after execution" do
         entered = false
+        subject.exit
         subject.enter { |cxt| entered = cxt.entered? }
         entered.should be_true
         subject.should_not be_entered
@@ -63,7 +71,8 @@ describe V8::Context do
 
     context "when no block given" do
       it "enters to context" do
-        subject.enter.should be_true
+        subject.exit
+        subject.enter.should be
         subject.should be_entered
       end
     end
