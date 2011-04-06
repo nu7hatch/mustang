@@ -52,6 +52,8 @@ find_library('v8', nil, lib)
 have_library('pthread')
 have_header('v8.h')
 
+CONFIG['LDSHARED'] = '$(CXX) -shared' unless darwin?
+
 %w[-Wall -g -rdynamic -fPIC].each { |flag| 
   $CPPFLAGS += " #{flag}" unless $CPPFLAGS.include?(flag)
 }

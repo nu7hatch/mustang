@@ -12,8 +12,8 @@ describe Class do
         attr_reader :bar
       end
 
-      First.declared_methods.should == [:foo, :foo=, :to_s]
-      Second.declared_methods.should == [:bar, :foo, :foo=, :to_s]
+      First.declared_methods.should =~ [:foo, :foo=, :to_s]
+      Second.declared_methods.should =~ [:bar, :foo, :foo=, :to_s]
     end
   end
 end
