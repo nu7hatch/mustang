@@ -26,19 +26,12 @@ module Mustang
     global
   end
 
-  # Global context.
   def self.global
     @global or reset!
   end
 
-  # Resets global context state. Appartently just creates new global
-  # context and enters it. 
+  # Resets global context state (just creates new global context and enters to it). 
   def self.reset!(*args, &block)
-    @global = GlobalContext.new(*args, &block)
+    @global = Context.new(*args, &block)
   end
-
-  # We need enter into global context to avoid segfaults. Apart of my laziness
-  # keeping one global context is much easier than handling errors in all 
-  # V8 datatypes implementation... 
-  enter
 end # Mustang

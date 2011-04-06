@@ -10,6 +10,13 @@ describe V8::External do
   end
   
   describe ".new" do
+    context "when no context entered" do
+      it "should raise error" do
+        V8::Context.exit_all!
+        expect { V8::External.new(StringIO.new) }.to raise_error(RuntimeError, "can't create V8 object without entering into context")
+      end
+    end
+
     it "creates new v8 external" do
       obj = StringIO.new
       subject.new(obj).should be_kind_of(V8::External)

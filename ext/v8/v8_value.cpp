@@ -21,6 +21,8 @@ UNWRAPPER(Value);
  */
 static VALUE rb_v8_value_new(VALUE self, VALUE data)
 {
+  HandleScope scope; 
+  PREVENT_CREATION_WITHOUT_CONTEXT();
   return v8_ref_new(self, to_v8(data));
 }
 

@@ -51,6 +51,8 @@ Handle<Value> to_v8_object(VALUE value)
 static VALUE rb_v8_object_new(int argc, VALUE *argv, VALUE klass)
 {
   HandleScope scope;
+  PREVENT_CREATION_WITHOUT_CONTEXT();
+
   VALUE self;
   
   switch (argc) {

@@ -27,4 +27,10 @@
     return v8_ref_get<T>(self);			\
   }
 
+#define PREVENT_CREATION_WITHOUT_CONTEXT()				                \
+  if (!Context::InContext()) {					                        \
+    rb_raise(rb_eRuntimeError, "can't create V8 object without entering into context");	\
+    return Qnil;							                \
+  }				       
+
 #endif//__V8_MACROS_H

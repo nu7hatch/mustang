@@ -29,6 +29,7 @@ Handle<Value> to_v8_external(VALUE value)
 static VALUE rb_v8_external_new(VALUE klass, VALUE obj)
 {
   HandleScope scope;
+  PREVENT_CREATION_WITHOUT_CONTEXT();
   return v8_ref_new(klass, to_v8_external(obj));
 }
   

@@ -9,6 +9,13 @@ describe V8::Value do
   end
   
   describe ".new" do
+    context "when no context entered" do
+      it "should raise error" do
+        V8::Context.exit_all!
+        expect { subject.new(Object.new) }.to raise_error(RuntimeError, "can't create V8 object without entering into context")
+      end
+    end
+
     it "creates new v8 value" do
       subject.new(Object.new).should be_kind_of(V8::Value)
     end

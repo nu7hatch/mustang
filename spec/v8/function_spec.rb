@@ -9,6 +9,13 @@ describe V8::Function do
   end
 
   describe ".new" do
+    context "when no context entered" do
+      it "should raise error" do
+        V8::Context.exit_all!
+        expect { subject.new(lambda {}) }.to raise_error(RuntimeError, "can't create V8 object without entering into context")
+      end
+    end
+
     context "when given proc/lambda" do
       it "creates new function pointed to it" do
         func = subject.new(lambda {|bar| "foo#{bar}"})

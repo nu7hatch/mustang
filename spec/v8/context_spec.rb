@@ -75,4 +75,41 @@ describe V8::Context do
       subject.should_not be_entered
     end
   end
+
+  describe ".exit_all!" do
+    it "exits from all curretnly entered contexts" do
+      cxts = []
+      cxts << V8::Context.new
+      cxts << V8::Context.new
+      cxts << V8::Context.new
+      cxts.each { |cxt| cxt.enter }
+      V8::Context.exit_all!
+      cxts.each { |cxt| cxt.should_not be_entered }
+    end
+  end
+
+  describe ".current" do
+    context "when there is entered context" do
+      it "returns currently entered context" do
+        pending "not implemented"
+        cxt = V8::Context.new
+        cxt.enter
+        V8::Context.current.should == cxt
+      end
+    end
+
+    context "when there is no context entered" do
+      it "returns nil" do
+        pending "not implemented"
+        V8::Context.exit_all!
+        V8::Context.current.should_not be
+      end
+    end
+
+    it "is aliased with #entered" do
+      pending "not implemented"
+      V8::Context.new.enter
+      V8::Context.entered.should == V8::Context.current
+    end
+  end
 end

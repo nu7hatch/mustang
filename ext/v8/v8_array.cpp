@@ -36,6 +36,8 @@ Handle<Value> to_v8_array(VALUE value)
 static VALUE rb_v8_array_new(VALUE klass, VALUE data)
 {
   HandleScope scope;
+  PREVENT_CREATION_WITHOUT_CONTEXT();
+  
   VALUE ary = rb_funcall2(data, rb_intern("to_a"), 0, NULL);
   VALUE self = v8_ref_new(klass, to_v8_array(ary));
 

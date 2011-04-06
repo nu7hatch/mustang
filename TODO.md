@@ -7,3 +7,4 @@
 * v8 debug stuff
 * support for ObjectTemplates
 * reflecting ruby classes to FunctionTemplates
+* getting entered context

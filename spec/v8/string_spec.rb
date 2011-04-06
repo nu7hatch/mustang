@@ -10,6 +10,13 @@ describe V8::String do
   end
 
   describe ".new" do
+    context "when no context entered" do
+      it "should raise error" do
+        V8::Context.exit_all!
+        expect { subject.new("foo") }.to raise_error(RuntimeError, "can't create V8 object without entering into context")
+      end
+    end
+
     it "creates new v8 string based on passed value" do
       subject.new("foo").to_s.should == "foo"
     end

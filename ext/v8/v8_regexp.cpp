@@ -61,6 +61,7 @@ Handle<Value> to_v8_regexp(VALUE value)
 static VALUE rb_v8_regexp_new(int argc, VALUE *argv, VALUE klass)
 {
   HandleScope scope;
+  PREVENT_CREATION_WITHOUT_CONTEXT();
 
   if (argc == 1) {
     return v8_ref_new(klass, to_v8_regexp(argv[0]));

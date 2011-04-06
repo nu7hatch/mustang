@@ -131,20 +131,6 @@ static VALUE rb_v8_context_global(VALUE self)
 
 /*
  * call-seq:
- *   cxt.exit  => nil
- *
- * Exits from context.
- *
- */
-static VALUE rb_v8_context_exit(VALUE self)
-{
-  HandleScope scope;
-  unwrap(self)->Exit();
-  return Qnil;
-}
-
-/*
- * call-seq:
  *   cxt.entered?  => true or false
  *
  * Returns <code>true</code> when this context is entered.
@@ -156,12 +142,50 @@ static VALUE rb_v8_context_entered_p(VALUE self)
   return unwrap(self) == Context::GetEntered() ? Qtrue : Qfalse;
 }
 
+/*
+ * call-seq:
+ *   cxt.exit  => nil
+ *
+ * Exits from context.
+ *
+ */
+static VALUE rb_v8_context_exit(VALUE self)
+{
+  HandleScope scope;
+  Handle<Context> context;
+  
+  if (Context::InContext() && context == Context::GetEntered()) {
+    context->Exit();
+  }
+  
+  return Qnil;
+}
+
+/*
+ * call-seq:
+ *   V8::Context.exit_all!  => nil
+ *
+ * Exits from all entered context.
+ *
+ */
+static VALUE rb_v8_context_exit_all_bang(VALUE klass)
+{
+  HandleScope scope;
+
+  while (Context::InContext()) {
+    Context::GetEntered()->Exit();
+  }
+
+  return Qnil;
+}
+
 
 /* V8::Context class initializer. */
 void Init_V8_Context()
 {
   rb_cV8Context = rb_define_class_under(rb_mV8, "Context", rb_cObject);
   rb_define_singleton_method(rb_cV8Context, "new", RUBY_METHOD_FUNC(rb_v8_context_new), 0);
+  rb_define_singleton_method(rb_cV8Context, "exit_all!", RUBY_METHOD_FUNC(rb_v8_context_exit_all_bang), 0);
   rb_define_method(rb_cV8Context, "evaluate", RUBY_METHOD_FUNC(rb_v8_context_evaluate), 2);
   rb_define_method(rb_cV8Context, "eval", RUBY_METHOD_FUNC(rb_v8_context_evaluate), 2);
   rb_define_method(rb_cV8Context, "prototype", RUBY_METHOD_FUNC(rb_v8_context_prototype), 0);

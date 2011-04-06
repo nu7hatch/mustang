@@ -28,6 +28,7 @@ Handle<Value> to_v8_integer(VALUE value)
 static VALUE rb_v8_integer_new(VALUE klass, VALUE data)
 {
   HandleScope scope;
+  PREVENT_CREATION_WITHOUT_CONTEXT();
   VALUE num = rb_funcall2(data, rb_intern("to_i"), 0, NULL);
   return v8_ref_new(klass, to_v8_integer(num));
 }

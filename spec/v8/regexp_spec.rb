@@ -9,6 +9,13 @@ describe V8::Regexp do
   end
 
   describe ".new" do
+    context "when no context entered" do
+      it "should raise error" do
+        V8::Context.exit_all!
+        expect { subject.new(/foo/) }.to raise_error(RuntimeError, "can't create V8 object without entering into context")
+      end
+    end
+
     context "when ruby regexp passed" do
       it "creates new v8 regexp based on it" do
         subject.new(/foo(bar)?/im).should == /foo(bar)?/im

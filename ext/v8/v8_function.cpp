@@ -61,6 +61,8 @@ Handle<Value> to_v8_function(VALUE value)
 static VALUE rb_v8_function_new(int argc, VALUE *argv, VALUE klass)
 {
   HandleScope scope;
+  PREVENT_CREATION_WITHOUT_CONTEXT();
+
   VALUE orig;
   
   if (rb_block_given_p()) {

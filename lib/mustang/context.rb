@@ -3,10 +3,6 @@ module Mustang
   class ScriptNotFoundError < Errno::ENOENT 
   end
 
-  # Raised when try to exit from global context. 
-  class ImmortalContextError < RuntimeError
-  end
-
   # Extended and more user-friendly version of <tt>Mustang::V8::Context</tt>.
   class Context < V8::Context
     # Evaluates given javascript source. Before evaluation it's able to
@@ -43,27 +39,5 @@ module Mustang
     def errors
       @errors ||= []
     end
-
-    # Returns <tt>true</tt> when it is global (immortal) context.
-    def global?
-      false
-    end
   end # Context
-
-  # This kind of context is used by <tt>Mustang</tt> module. 
-  class GlobalContext < Context
-    def initialize(*)
-      super 
-      enter
-    end
-
-    def exit
-      # We have to disable exit, because global context is immortal. 
-      raise ImmortalContextError, "Global context can't be exited"
-    end
-    
-    def global?
-      true
-    end
-  end # GlobalContext
 end # Mustang
