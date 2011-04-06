@@ -14,7 +14,7 @@ def debug
 end
 
 def setup_context
-  let(:cxt) { V8::Context.new }
+  let(:cxt) { Mustang::V8::Context.new }
   before { cxt.enter }
   after { cxt.exit }
 end

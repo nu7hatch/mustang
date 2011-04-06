@@ -46,7 +46,9 @@ static VALUE rb_v8_version(VALUE self)
 /* V8 module initializer. */
 void Init_V8()
 {
-  rb_mV8 = rb_define_module("V8");
+  VALUE rb_mMustang = rb_define_module("Mustang");
+  
+  rb_mV8 = rb_define_module_under(rb_mMustang, "V8");
   rb_define_singleton_method(rb_mV8, "dead?", RUBY_METHOD_FUNC(rb_v8_dead_p), 0);
   rb_define_singleton_method(rb_mV8, "alive?", RUBY_METHOD_FUNC(rb_v8_alive_p), 0);
   rb_define_singleton_method(rb_mV8, "version", RUBY_METHOD_FUNC(rb_v8_version), 0);

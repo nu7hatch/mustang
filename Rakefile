@@ -9,7 +9,7 @@ end
 begin
   require 'rake/extensiontask'
   Rake::ExtensionTask.new("v8") do |ext|
-    ext.lib_dir = 'lib'
+    ext.lib_dir = 'lib/mustang'
     ext.source_pattern = "*.{cpp,h}"
   end
 rescue LoadError

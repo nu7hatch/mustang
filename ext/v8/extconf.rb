@@ -58,4 +58,4 @@ CONFIG['LDSHARED'] = '$(CXX) -shared' unless darwin?
   $CPPFLAGS += " #{flag}" unless $CPPFLAGS.include?(flag)
 }
 
-create_makefile('v8')
+create_makefile('mustang/v8')
