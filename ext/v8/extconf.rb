@@ -27,16 +27,14 @@ def compile_vendor_v8!(dir)
   flags = '-fPIC -fno-builtin-memcpy -shared'
 
   Dir.chdir dir do 
-    if Dir["**/libv8.a"].empty?
-      begin
-        make_sure_scons_installed!
-        defaults, ENV['CCFLAGS'] = ENV['CCFLAGS'], flags
-        build_cmd = "scons mode=release snapshot=off library=static arch=#{arch}"
-        puts build_cmd
-        system build_cmd
-      ensure
-        ENV['CCFLAGS'] = defaults
-      end
+    begin
+      make_sure_scons_installed!
+      defaults, ENV['CCFLAGS'] = ENV['CCFLAGS'], flags
+      build_cmd = "scons mode=release snapshot=off library=static arch=#{arch}"
+      puts build_cmd
+      system build_cmd
+    ensure
+      ENV['CCFLAGS'] = defaults
     end
   end
 end
@@ -46,6 +44,7 @@ inc, lib = dir_config('v8', File.join(V8_DIR, 'include'), V8_DIR)
 
 if V8_DIR == lib
   compile_vendor_v8!(V8_DIR)
+  $LOCAL_LIBS << Dir[File.join(V8_DIR, "**/**/libv8.a")].first
 end
 
 find_library('v8', nil, lib)
