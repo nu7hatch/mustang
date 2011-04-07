@@ -5,14 +5,16 @@ def darwin?
   RUBY_PLATFORM =~ /darwin/
 end
 
+def rubinius?
+  defined?(RUBY_ENGINE) && RUBY_ENGINE == 'rbx'  
+end
+
 def cpu_x64?
-  if defined?(RUBY_ENGINE) and RUBY_ENGINE != 'rbx'
-    !!(RbConfig::MAKEFILE_CONFIG['arch'] =~ /x86_64/ ||
-       RbConfig::MAKEFILE_CONFIG['target_cpu'] == 'x86_64' ||
-       RbConfig::MAKEFILE_CONFIG['build_cpu'] == 'x86_64' ||
+  if rubinius?
+    !!(RbConfig::MAKEFILE_CONFIG['build_cpu'] == 'x86_64' ||
        RbConfig::MAKEFILE_CONFIG['ARCH_FLAG'] =~ /x86_64/)
   else
-    ['x'].pack('y').size == 8
+    ['foo'].pack('p').size == 8
   end
 end
 
