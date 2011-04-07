@@ -53,11 +53,11 @@ describe Mustang::V8::Object do
     let(:obj) { subject.new(:foo => 1, :bar => 2) }
 
     it "returns list of keys belonging to an object" do
-      obj.keys.should == ['foo', 'bar']
+      obj.keys.should =~ ['foo', 'bar']
     end
 
     it "is aliased with #properties" do
-      obj.properties.should == ['foo', 'bar']
+      obj.properties.should =~ ['foo', 'bar']
     end
   end
 
