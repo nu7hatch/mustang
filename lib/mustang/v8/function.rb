@@ -8,6 +8,10 @@ module Mustang
       def to_proc
         origin.to_proc if origin
       end
+
+      def kind_of?(klass)
+        origin.is_a?(klass) or super(klass)
+      end
     end # Function
   end # V8
 end # Mustang

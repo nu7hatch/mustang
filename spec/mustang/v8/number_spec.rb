@@ -8,6 +8,10 @@ describe Mustang::V8::Number do
     subject.new(10.5).should be_kind_of(Mustang::V8::Primitive)
   end
 
+  it "is kind of Float" do
+    subject.new(10.5).should be_kind_of Float
+  end
+
   describe ".new" do
     it "creates new v8 number based on passed value" do
       subject.new(10.5).should == 10.5

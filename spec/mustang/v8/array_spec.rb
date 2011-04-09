@@ -7,6 +7,10 @@ describe Mustang::V8::Array do
   it "inherits Mustang::V8::Object" do
     subject.new(1,2,3).should be_kind_of(Mustang::V8::Object)
   end  
+
+  it "is kind of Array" do
+    subject.new(1,2,3).should be_kind_of Array
+  end
   
   describe ".new" do
     context "when no context entered" do

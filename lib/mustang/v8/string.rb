@@ -22,6 +22,10 @@ module Mustang
       def delegate
         to_s
       end
+
+      def kind_of?(klass)
+        klass == ::String or super(klass)
+      end
     end # String
   end # V8
 end # Mustang

@@ -11,6 +11,7 @@ require 'mustang/v8/date'
 require 'mustang/v8/regexp'
 require 'mustang/v8/function'
 require 'mustang/v8/external'
+require 'mustang/v8/boolean'
 require 'mustang/v8/error'
 
 require 'mustang/core_ext/object'

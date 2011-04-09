@@ -9,6 +9,10 @@ describe Mustang::V8::String do
     subject.new("foo").should be_kind_of(Mustang::V8::Primitive)
   end
 
+  it "is kind of String" do
+    subject.new("foo").should be_kind_of String
+  end
+
   describe ".new" do
     context "when no context entered" do
       it "should raise error" do

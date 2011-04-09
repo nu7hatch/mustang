@@ -11,6 +11,10 @@ module Mustang
       def delegate
         to_i
       end
+
+      def kind_of?(klass)
+        klass == ::Fixnum or super(klass)
+      end
     end # Integer
   end # V8
 end # Mustang

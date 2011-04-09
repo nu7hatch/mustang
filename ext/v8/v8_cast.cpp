@@ -12,6 +12,7 @@
 #include "v8_regexp.h"
 #include "v8_context.h"
 #include "v8_external.h"
+#include "v8_boolean.h"
 #include "v8_errors.h"
 #include "v8_macros.h"
 
@@ -80,7 +81,7 @@ VALUE to_ruby(Handle<Value> value)
   } else if (value->IsNull()) {
     return rb_const_get(rb_mV8, rb_intern("Null"));
   } else if (value->IsBoolean()) {
-    return value->BooleanValue() ? Qtrue : Qfalse;
+    return rb_const_get(rb_mV8, value->BooleanValue() ? rb_intern("True") : rb_intern("False"));
   } else if (value->IsDate()) {
     return to_ruby_without_peer<Date>(value, rb_cV8Date);
   } else if (value->IsUint32() || value->IsInt32()) {

@@ -15,6 +15,10 @@ module Mustang
       def delegate
         to_time
       end
+
+      def kind_of?(klass)
+        klass == ::Time or klass == ::Date or klass == ::DateTime or super(klass)
+      end
     end # Date
   end # V8
 end # Mustang

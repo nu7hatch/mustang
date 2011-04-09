@@ -8,6 +8,10 @@ describe Mustang::V8::Regexp do
     subject.new(/foo(bar)?/).should be_kind_of(Mustang::V8::Value)
   end
 
+  it "is kind of Regexp" do
+    subject.new(/foo/).should be_kind_of Regexp
+  end
+
   describe ".new" do
     context "when no context entered" do
       it "should raise error" do

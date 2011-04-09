@@ -8,6 +8,10 @@ describe Mustang::V8::Function do
     subject.new(lambda { "foo" }).should be_kind_of(Mustang::V8::Object)
   end
 
+  it "is kind of Proc" do
+    subject.new(proc {}).should be_kind_of Proc
+  end
+
   describe ".new" do
     context "when no context entered" do
       it "should raise error" do

@@ -16,6 +16,10 @@ module Mustang
       def delegate
         to_a
       end
+
+      def kind_of?(klass)
+        klass == ::Array or super(klass)
+      end
     end # Array
   end # V8
 end # Mustang

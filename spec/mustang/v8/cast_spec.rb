@@ -31,8 +31,8 @@ describe "Typecasting" do
     end
 
     it "converts boolean values properly" do
-      cxt.eval("true", "<eval>").should be_true
-      cxt.eval("false", "<eval>").should be_false
+      cxt.eval("true", "<eval>").should == true
+      cxt.eval("false", "<eval>").should == false
     end
 
     it "converts strings properly" do

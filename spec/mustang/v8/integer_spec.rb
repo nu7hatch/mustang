@@ -9,6 +9,10 @@ describe Mustang::V8::Integer do
     subject.new(10).should be_kind_of(Mustang::V8::Number)
   end
 
+  it "is kind of Fixnum" do
+    subject.new(1).should be_kind_of Fixnum
+  end
+
   describe ".new" do
     context "when no context entered" do
       it "should raise error" do

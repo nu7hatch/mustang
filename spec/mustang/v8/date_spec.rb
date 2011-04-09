@@ -12,6 +12,12 @@ describe Mustang::V8::Date do
     subject.new(@now).should be_kind_of(Mustang::V8::Value)
   end
 
+  it "is kind of Date, DateTime, Time" do
+    subject.new(@now).should be_kind_of Date
+    subject.new(@now).should be_kind_of DateTime
+    subject.new(@now).should be_kind_of Time
+  end
+
   describe ".new" do
     context "when no context entered" do
       it "should raise error" do

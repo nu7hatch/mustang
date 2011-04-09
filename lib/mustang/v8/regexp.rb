@@ -18,6 +18,10 @@ module Mustang
       def to_regexp
         ::Regexp.new(source, options)
       end
+
+      def kind_of?(klass)
+        klass == ::Regexp or super(klass)
+      end
     end # Regexp
   end # V8
 end # Mustang

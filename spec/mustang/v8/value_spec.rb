@@ -169,8 +169,8 @@ describe Mustang::V8::Value do
 
   describe "#to_boolean" do
     it "return V8 boolean representation of value" do
-      Mustang::V8::Object.new(:foo => 1).to_boolean.should be_true
-      Mustang::V8::Integer.new(0).to_boolean.should be_false
+      Mustang::V8::Object.new(:foo => 1).to_boolean.should == true
+      Mustang::V8::Integer.new(0).to_boolean.should == false
     end
   end
 

@@ -11,6 +11,10 @@ module Mustang
       def delegate
         to_f
       end
+
+      def kind_of?(klass)
+        klass == ::Float or super(klass)
+      end
     end # Number
   end # V8
 end # Mustang
