@@ -61,12 +61,6 @@ shared_examples_for "Boolean" do
     end
   end
 
-  describe "#!" do
-    it "acts as ruby bool's method" do
-      !subject.should == !compare
-    end
-  end
-
   describe "#to_s" do
     it "acts as ruby bool's method" do
       subject.to_s.should == compare.to_s

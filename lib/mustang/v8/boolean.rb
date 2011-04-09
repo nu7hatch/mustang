@@ -33,10 +33,6 @@ module Mustang
         to_bool <=> other
       end
 
-      def !
-        !to_bool
-      end
-
       def kind_of?(klass)
         klass == (false? ? false.class : true.class) or super(klass)
       end
