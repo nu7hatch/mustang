@@ -28,30 +28,37 @@ def compile_vendor_v8!(dir)
   arch = cpu_x64? ? 'x64' : 'ia32' 
   flags = '-fPIC -fno-builtin-memcpy -shared'
 
-  Dir.chdir dir do 
-    begin
-      make_sure_scons_installed!
-      defaults, ENV['CCFLAGS'] = ENV['CCFLAGS'], flags
-      build_cmd = "scons mode=release snapshot=off library=static arch=#{arch}"
-      puts build_cmd
-      system build_cmd
-    ensure
-      ENV['CCFLAGS'] = defaults
-    end
+  begin
+    make_sure_scons_installed!
+    defaults, ENV['CCFLAGS'] = ENV['CCFLAGS'], flags
+    puts "-"*30
+    compile_cmd = "cd #{dir} && scons mode=release snapshot=off library=static arch=#{arch}"
+    puts compile_cmd
+    system compile_cmd
+    puts "-"*30
+  ensure
+    ENV['CCFLAGS'] = defaults
   end
 end
 
-V8_DIR = File.expand_path("../../../vendor/v8", __FILE__)
-inc, lib = dir_config('v8', File.join(V8_DIR, 'include'), V8_DIR)
+unless have_library('v8')
+  V8_DIR = File.expand_path("../../../vendor/v8", __FILE__)
+  inc, lib = dir_config('v8', File.join(V8_DIR, 'include'), V8_DIR)
 
-if V8_DIR == lib
-  compile_vendor_v8!(V8_DIR)
-  $LOCAL_LIBS << Dir[File.join(V8_DIR, "**/**/libv8.a")].first
+  if V8_DIR == lib
+    compile_vendor_v8!(V8_DIR)
+    $LOCAL_LIBS << Dir[File.join(V8_DIR, "**/**/libv8.a")].first
+  end
+
+  find_library('v8', nil, lib)
 end
 
-find_library('v8', nil, lib)
 have_library('pthread')
+have_header('string.h')
+have_header('ruby.h')
 have_header('v8.h')
+have_header('v8-debug.h')
+have_header('v8-profiler.h')
 
 CONFIG['LDSHARED'] = '$(CXX) -shared' unless darwin?
 
