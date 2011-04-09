@@ -102,7 +102,7 @@ VALUE to_ruby(Handle<Value> value)
     return to_ruby_with_peer<Object>(value, rb_cV8Object);
   }
 
-  return Qnil;
+  return rb_const_get(rb_mV8, rb_intern("Empty"));
 }
 
 OVERLOAD_TO_RUBY_WITH(Boolean);
