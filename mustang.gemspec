@@ -3,7 +3,7 @@
 Gem::Specification.new do |s|
   s.name = "mustang"
   s.summary = "Awesome V8 JavaScript engine embedded into the Ruby's shiny body"
-  s.version = "0.2.0"
+  s.version = "0.2.2"
   s.authors = ["Chris Kowalik", "Cubox"]
   s.description = "Ruby proxy library for Google V8 Javascript engine."
   s.homepage = "http://github.com/nu7hatch/mustang"
