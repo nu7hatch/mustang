@@ -1,30 +1,21 @@
 #ifndef __V8_MACROS_H
 #define __V8_MACROS_H
 
-/* Symbol to string cast method for ruby < 1.9. */
-#ifndef rb_sym_to_s
-#define rb_sym_to_s(sym) \
-  rb_funcall2(sym, rb_intern("to_s"), 0, NULL)
+#ifndef HAVE_RB_SYM_TO_S
+#define rb_sym_to_s(sym) rb_funcall2(sym, rb_intern("to_s"), 0, NULL)
 #endif
 
-/* The `rb_cMethod` id not available on Rubinius so we have to define it here. */ 
-#ifndef rb_cMethod
-#define rb_cMethod \
-  rb_const_get(rb_cObject, rb_intern("Method"))
+#ifndef HAVE_RB_CMETHOD
+#define rb_cMethod rb_const_get(rb_cObject, rb_intern("Method"))
 #endif
 
-/* Converts any object to array by triggering #to_a on it. */
-#define rb_any_to_ary(range) \
-  rb_funcall2(value, rb_intern("to_a"), 0, NULL)
+#ifndef HAVE_RB_ANY_TO_ARY
+#define rb_any_to_ary(range) rb_funcall2(value, rb_intern("to_a"), 0, NULL)
+#endif
 
-/* Name of hidden value which contains ruby peer object. */
-#define RUBY_PEER_ATTR "__RUBY_PEER__"
-
-/* Assigns ruby peer object as hidden value of reflected v8 object. */
-#define v8_set_peer2(handle, obj) \
-  handle->SetHiddenValue(String::New(RUBY_PEER_ATTR), External::Wrap((void*)obj))
-#define v8_set_peer(obj) \
-  v8_set_peer2(unwrap(obj), obj)
+#ifndef RUBY_EXTERN
+#define RUBY_EXTERN extern
+#endif
 
 /* Automaticly declares unwrap method for given type */
 #define UNWRAPPER(T)				\

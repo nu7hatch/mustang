@@ -6,6 +6,15 @@
 
 using namespace v8;
 
+/* Name of hidden value which contains ruby peer object. */
+#define RUBY_PEER_ATTR "__RUBY_PEER__"
+
+/* Assigns ruby peer object as hidden value of reflected v8 object. */
+#define v8_set_peer2(handle, obj) \
+  handle->SetHiddenValue(String::New(RUBY_PEER_ATTR), External::Wrap((void*)obj))
+#define v8_set_peer(obj) \
+  v8_set_peer2(unwrap(obj), obj)
+
 /*
  * The objectRef keeps a persistent V8 handle, so ruby object can access
  * a reference to it.

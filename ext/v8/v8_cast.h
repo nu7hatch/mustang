@@ -3,6 +3,7 @@
 
 #include "v8_main.h"
 #include "v8_macros.h"
+#include "v8_ref.h"
 
 using namespace v8;
 
