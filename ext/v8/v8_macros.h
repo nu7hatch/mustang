@@ -1,10 +1,16 @@
 #ifndef __V8_MACROS_H
 #define __V8_MACROS_H
 
-/* Symbol to string cast method for ruby < 1.9 */
+/* Symbol to string cast method for ruby < 1.9. */
 #ifndef rb_sym_to_s
 #define rb_sym_to_s(sym) \
   rb_funcall2(sym, rb_intern("to_s"), 0, NULL)
+#endif
+
+/* The `rb_cMethod` id not available on Rubinius so we have to define it here. */ 
+#ifndef rb_cMethod
+#define rb_cMethod \
+  rb_const_get(rb_cObject, rb_intern("Method"))
 #endif
 
 /* Converts any object to array by triggering #to_a on it. */
@@ -27,6 +33,7 @@
     return v8_ref_get<T>(self);			\
   }
 
+/* Checks if V8 is within some context, and raises proper exception if not. */
 #define PREVENT_CREATION_WITHOUT_CONTEXT()				                \
   if (!Context::InContext()) {					                        \
     rb_raise(rb_eRuntimeError, "can't create V8 object without entering into context");	\

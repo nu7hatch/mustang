@@ -16,7 +16,7 @@ module Mustang
       end
       
       def to_regexp
-        ::Regexp.new(source, options)
+        ::Regexp.new(source.to_s, options.to_i)
       end
 
       def kind_of?(klass)
