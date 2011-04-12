@@ -6,7 +6,10 @@ using namespace v8;
 
 void gc_v8_object_mark(v8_ref *r)
 {
-  rb_gc_mark(r->origin);
+  if (!NIL_P(r->origin)) {
+    rb_gc_mark(r->origin);
+  }
+
   rb_gc_mark(r->references);
 }
 

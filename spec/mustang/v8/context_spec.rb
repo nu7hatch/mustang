@@ -100,7 +100,6 @@ describe Mustang::V8::Context do
   describe ".current" do
     context "when there is entered context" do
       it "returns currently entered context" do
-        pending "not implemented"
         cxt = Mustang::V8::Context.new
         cxt.enter
         Mustang::V8::Context.current.should == cxt
@@ -109,14 +108,12 @@ describe Mustang::V8::Context do
 
     context "when there is no context entered" do
       it "returns nil" do
-        pending "not implemented"
         Mustang::V8::Context.exit_all!
         Mustang::V8::Context.current.should_not be
       end
     end
 
     it "is aliased with #entered" do
-      pending "not implemented"
       Mustang::V8::Context.new.enter
       Mustang::V8::Context.entered.should == Mustang::V8::Context.current
     end

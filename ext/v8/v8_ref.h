@@ -6,7 +6,7 @@
 
 using namespace v8;
 
-/* Name of hidden value which contains ruby peer object. */
+/* Names of hidden values which contains ruby peer object. */
 #define RUBY_PEER_ATTR "__RUBY_PEER__"
 
 /* Assigns ruby peer object as hidden value of reflected v8 object. */

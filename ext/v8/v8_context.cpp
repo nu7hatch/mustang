@@ -6,12 +6,47 @@
 
 using namespace v8;
 
+VALUE rb_active_contexts = rb_ary_new();
 VALUE rb_cV8Context;
 UNWRAPPER(Context);
+
+/* Local helpers */
+
+static VALUE v8_context_ref_find(Handle<Context> handle)
+{
+  for (int i = 0; i < RARRAY_LEN(rb_active_contexts); i++) {
+    VALUE cxt = rb_ary_entry(rb_active_contexts, i);
+
+    if (!NIL_P(cxt) && unwrap(cxt) == handle) {
+      return cxt;
+    }
+  }
+
+  return v8_ref_new(rb_cV8Context, handle);
+}
 
 /* V8::Context methods */
 
 static VALUE rb_v8_context_enter(VALUE self);
+
+/*
+ * call-seq:
+ *   Mustang::V8::Context.current  => context
+ *   Mustang::V8::Context.entered  => context
+ *
+ * Returns currently entered context.
+ *
+ */
+static VALUE rb_v8_context_current(VALUE klass)
+{
+  HandleScope scope;
+  
+  if (Context::InContext()) {
+    return v8_context_ref_find(Context::GetEntered());
+  }
+  
+  return Qnil;
+}
 
 /*
  * call-seq:
@@ -20,15 +55,16 @@ static VALUE rb_v8_context_enter(VALUE self);
  * Returns new V8 context.
  *
  */
-static VALUE rb_v8_context_new(VALUE self)
+static VALUE rb_v8_context_new(VALUE klass)
 {
   HandleScope scope;
   Persistent<Context> context(Context::New());
 
-  VALUE ref = v8_ref_new(self, context);
+  VALUE ref = v8_ref_new(klass, context);
   rb_v8_context_enter(ref);
   rb_iv_set(ref, "@errors", rb_ary_new());
-
+  rb_ary_unshift(rb_active_contexts, ref);
+  
   context.Dispose();
   return ref;
 }
@@ -186,9 +222,13 @@ static VALUE rb_v8_context_exit_all_bang(VALUE klass)
 /* V8::Context class initializer. */
 void Init_V8_Context()
 {
+  rb_gc_register_address(&rb_active_contexts);
+  
   rb_cV8Context = rb_define_class_under(rb_mV8, "Context", rb_cObject);
   rb_define_singleton_method(rb_cV8Context, "new", RUBY_METHOD_FUNC(rb_v8_context_new), 0);
   rb_define_singleton_method(rb_cV8Context, "exit_all!", RUBY_METHOD_FUNC(rb_v8_context_exit_all_bang), 0);
+  rb_define_singleton_method(rb_cV8Context, "current", RUBY_METHOD_FUNC(rb_v8_context_current), 0);
+  rb_define_singleton_method(rb_cV8Context, "entered", RUBY_METHOD_FUNC(rb_v8_context_current), 0);
   rb_define_method(rb_cV8Context, "evaluate", RUBY_METHOD_FUNC(rb_v8_context_evaluate), 2);
   rb_define_method(rb_cV8Context, "eval", RUBY_METHOD_FUNC(rb_v8_context_evaluate), 2);
   rb_define_method(rb_cV8Context, "prototype", RUBY_METHOD_FUNC(rb_v8_context_prototype), 0);
@@ -198,4 +238,5 @@ void Init_V8_Context()
   rb_define_method(rb_cV8Context, "entered?", RUBY_METHOD_FUNC(rb_v8_context_entered_p), 0);
   rb_define_attr(rb_cV8Context, "error", 1, 0);
   rb_define_attr(rb_cV8Context, "errors", 1, 0);
+  rb_cv_set(rb_cV8Context, "@@contexts", rb_ary_new());
 }
