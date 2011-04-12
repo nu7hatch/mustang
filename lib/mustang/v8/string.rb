@@ -10,6 +10,7 @@ module Mustang
         end
       end
 
+      undef_method :to_s
       alias_method :to_s, :to_utf8
 
       include Comparable
