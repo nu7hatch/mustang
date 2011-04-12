@@ -1,6 +1,7 @@
 require 'rbconfig'
 require 'mkmf'
 
+
 def darwin?
   RUBY_PLATFORM =~ /darwin/
 end
@@ -41,21 +42,18 @@ def compile_vendor_v8!(dir)
   end
 end
 
-unless have_library('v8')
-  V8_DIR = File.expand_path("../../../vendor/v8", __FILE__)
-  inc, lib = dir_config('v8', File.join(V8_DIR, 'include'), V8_DIR)
+inc, lib = dir_config('v8', "/usr/include", "/usr/lib")
 
-  if V8_DIR == lib
-    compile_vendor_v8!(V8_DIR)
-    $LOCAL_LIBS << Dir[File.join(V8_DIR, "**/**/libv8.a")].first
-  end
-
-  find_library('v8', nil, lib)
+unless find_library('v8', nil, lib)
+  VENDOR_V8_DIR = File.expand_path("../../../vendor/v8", __FILE__)
+  compile_vendor_v8!(VENDOR_V8_DIR)
+  $LOCAL_LIBS << Dir[File.join(VENDOR_V8_DIR, "**/**/libv8.a")].first
+  dir_config('v8', File.join(VENDOR_V8_DIR, "include"), VENDOR_V8_DIR)
+  find_library('v8', nil, VENDOR_V8_DIR)
 end
 
 have_library('pthread')
 have_header('string.h')
-have_header('ruby.h')
 have_header('v8.h')
 have_header('v8-debug.h')
 have_header('v8-profiler.h')
