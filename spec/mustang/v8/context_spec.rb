@@ -85,6 +85,27 @@ describe Mustang::V8::Context do
     end
   end
 
+  describe "#==" do
+    before do
+      @cxt1 = Mustang::V8::Context.new
+      @cxt2 = Mustang::V8::Context.new
+      @cxt3 = @cxt2
+    end
+
+    it "returns true when contexts are equal" do
+      @cxt3.should == @cxt2
+    end
+
+    it "returns false when contexts are different" do
+      @cxt2.should_not == @cxt1
+    end
+
+    it "is aliased with #equals?" do
+      @cxt3.should be_equals(@cxt2)
+      @cxt2.should_not be_equals(@cxt1)
+    end
+  end
+
   describe ".exit_all!" do
     it "exits from all curretnly entered contexts" do
       cxts = []

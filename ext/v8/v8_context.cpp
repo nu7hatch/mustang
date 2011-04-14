@@ -6,28 +6,10 @@
 
 using namespace v8;
 
-VALUE rb_active_contexts = rb_ary_new();
 VALUE rb_cV8Context;
 UNWRAPPER(Context);
 
-/* Local helpers */
-
-static VALUE v8_context_ref_find(Handle<Context> handle)
-{
-  for (int i = 0; i < RARRAY_LEN(rb_active_contexts); i++) {
-    VALUE cxt = rb_ary_entry(rb_active_contexts, i);
-
-    if (!NIL_P(cxt) && unwrap(cxt) == handle) {
-      return cxt;
-    }
-  }
-
-  return v8_ref_new(rb_cV8Context, handle);
-}
-
 /* V8::Context methods */
-
-static VALUE rb_v8_context_enter(VALUE self);
 
 /*
  * call-seq:
@@ -42,7 +24,7 @@ static VALUE rb_v8_context_current(VALUE klass)
   HandleScope scope;
   
   if (Context::InContext()) {
-    return v8_context_ref_find(Context::GetEntered());
+    return v8_ref_new(klass, Context::GetEntered());
   }
   
   return Qnil;
@@ -59,14 +41,9 @@ static VALUE rb_v8_context_new(VALUE klass)
 {
   HandleScope scope;
   Persistent<Context> context(Context::New());
-
-  VALUE ref = v8_ref_new(klass, context);
-  rb_v8_context_enter(ref);
-  rb_iv_set(ref, "@errors", rb_ary_new());
-  rb_ary_unshift(rb_active_contexts, ref);
-  
+  VALUE self = rb_v8_context_new2(klass, context);  
   context.Dispose();
-  return ref;
+  return self;
 }
 
 /*
@@ -124,7 +101,6 @@ static VALUE rb_v8_context_evaluate(VALUE self, VALUE source, VALUE filename)
   Local<String> _filename(String::Cast(*to_v8(filename)));
 
   rb_v8_context_enter(self);
-  rb_iv_set(self, "@error", Qfalse);  
 
   TryCatch try_catch;
   Local<Script> script = Script::Compile(_source, _filename);
@@ -218,17 +194,43 @@ static VALUE rb_v8_context_exit_all_bang(VALUE klass)
   return Qnil;
 }
 
+/*
+ * call-seq:
+ *   cxt == other_cxt  => true or false
+ *
+ * Returns <code>true</code> when v8 context values are equals.
+ *
+ */
+static VALUE rb_v8_context_equals_p(VALUE self, VALUE other)
+{
+  if (rb_obj_is_kind_of(other, rb_cV8Context) && unwrap(other) == unwrap(self)) {
+    return Qtrue;
+  } else {
+    return Qfalse;
+  }
+}
+
+/* Public constructors. */
+
+VALUE rb_v8_context_new2(VALUE klass, Handle<Context> context)
+{
+  VALUE ref = v8_ref_new(klass, context);
+  rb_v8_context_enter(ref);
+  rb_iv_set(ref, "@errors", rb_ary_new());
+  return ref;
+}
+
 
 /* V8::Context class initializer. */
 void Init_V8_Context()
 {
-  rb_gc_register_address(&rb_active_contexts);
-  
   rb_cV8Context = rb_define_class_under(rb_mV8, "Context", rb_cObject);
   rb_define_singleton_method(rb_cV8Context, "new", RUBY_METHOD_FUNC(rb_v8_context_new), 0);
   rb_define_singleton_method(rb_cV8Context, "exit_all!", RUBY_METHOD_FUNC(rb_v8_context_exit_all_bang), 0);
   rb_define_singleton_method(rb_cV8Context, "current", RUBY_METHOD_FUNC(rb_v8_context_current), 0);
   rb_define_singleton_method(rb_cV8Context, "entered", RUBY_METHOD_FUNC(rb_v8_context_current), 0);
+  rb_define_method(rb_cV8Context, "==", RUBY_METHOD_FUNC(rb_v8_context_equals_p), 1);
+  rb_define_method(rb_cV8Context, "equals?", RUBY_METHOD_FUNC(rb_v8_context_equals_p), 1);
   rb_define_method(rb_cV8Context, "evaluate", RUBY_METHOD_FUNC(rb_v8_context_evaluate), 2);
   rb_define_method(rb_cV8Context, "eval", RUBY_METHOD_FUNC(rb_v8_context_evaluate), 2);
   rb_define_method(rb_cV8Context, "prototype", RUBY_METHOD_FUNC(rb_v8_context_prototype), 0);
@@ -236,7 +238,5 @@ void Init_V8_Context()
   rb_define_method(rb_cV8Context, "enter", RUBY_METHOD_FUNC(rb_v8_context_enter), 0);
   rb_define_method(rb_cV8Context, "exit", RUBY_METHOD_FUNC(rb_v8_context_exit), 0);
   rb_define_method(rb_cV8Context, "entered?", RUBY_METHOD_FUNC(rb_v8_context_entered_p), 0);
-  rb_define_attr(rb_cV8Context, "error", 1, 0);
   rb_define_attr(rb_cV8Context, "errors", 1, 0);
-  rb_cv_set(rb_cV8Context, "@@contexts", rb_ary_new());
 }

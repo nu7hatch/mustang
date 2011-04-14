@@ -1,7 +1,6 @@
 require 'rbconfig'
 require 'mkmf'
 
-
 def darwin?
   RUBY_PLATFORM =~ /darwin/
 end
