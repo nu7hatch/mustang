@@ -1,6 +1,10 @@
 require 'rbconfig'
 require 'mkmf'
 
+def debug?
+  ENV['DEBUG'] == 'yes'
+end
+
 def darwin?
   RUBY_PLATFORM =~ /darwin/
 end
@@ -32,7 +36,7 @@ def compile_vendor_v8!(dir)
     make_sure_scons_installed!
     defaults, ENV['CCFLAGS'] = ENV['CCFLAGS'], flags
     puts "-"*30
-    compile_cmd = "cd #{dir} && scons mode=release snapshot=off library=static arch=#{arch}"
+    compile_cmd = "cd #{dir} && scons mode=#{debug? ? 'debug' : 'release'} snapshot=off library=static arch=#{arch}"
     puts compile_cmd
     system compile_cmd
     puts "-"*30
