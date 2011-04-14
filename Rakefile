@@ -50,3 +50,13 @@ task :console do
   ARGV.clear
   IRB.start
 end
+
+desc "Runs V8 benchmark suite."
+task :benchmark do
+  require 'mustang'
+  Dir.chdir(File.expand_path("../vendor/v8/benchmarks", __FILE__))
+  cxt = Mustang::Context.new
+  cxt[:print] = method(:puts)
+  cxt[:load] = cxt.method(:load)
+  cxt.load("run.js")
+end
