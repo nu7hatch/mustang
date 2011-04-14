@@ -24,7 +24,7 @@ static VALUE rb_v8_context_current(VALUE klass)
   HandleScope scope;
   
   if (Context::InContext()) {
-    return v8_ref_new(klass, Context::GetEntered());
+    return rb_v8_wrapper_new(klass, Context::GetEntered());
   }
   
   return Qnil;
@@ -214,7 +214,7 @@ static VALUE rb_v8_context_equals_p(VALUE self, VALUE other)
 
 VALUE rb_v8_context_new2(VALUE klass, Handle<Context> context)
 {
-  VALUE ref = v8_ref_new(klass, context);
+  VALUE ref = rb_v8_wrapper_new(klass, context);
   rb_v8_context_enter(ref);
   rb_iv_set(ref, "@errors", rb_ary_new());
   return ref;

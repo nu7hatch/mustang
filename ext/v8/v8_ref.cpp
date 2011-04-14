@@ -4,16 +4,12 @@
 
 using namespace v8;
 
-void gc_v8_object_mark(v8_ref *r)
+void rb_v8_wrapper_gc_mark(rb_sV8Wrapper *r)
 {
-  if (!NIL_P(r->origin)) {
-    rb_gc_mark(r->origin);
-  }
-
   rb_gc_mark(r->references);
 }
 
-void gc_v8_object_free(v8_ref *r)
+void rb_v8_wrapper_gc_free(rb_sV8Wrapper *r)
 {
   delete r;
 }
@@ -21,55 +17,59 @@ void gc_v8_object_free(v8_ref *r)
 /*
  * Creates new reference to V8 object for ruby object.
  *
- *   v8_ref_new(rb_cV8Integer, Integer::New());
- *   v8_ref_new(rb_cV8String, String::Cast(*value));
+ *   rb_v8_wrapper_new(rb_cV8Integer, Integer::New());
+ *   rb_v8_wrapper_new(rb_cV8String, String::Cast(*value));
  *
  */
-VALUE v8_ref_new(VALUE klass, Handle<void> handle, VALUE orig/* = Qnil */)
+VALUE rb_v8_wrapper_new(VALUE klass, Handle<void> handle)
 {
-  v8_ref *r = new v8_ref(handle, orig);
-  return Data_Wrap_Struct(klass, gc_v8_object_mark, gc_v8_object_free, r);
+  rb_sV8Wrapper *r = new rb_sV8Wrapper(handle);
+  return Data_Wrap_Struct(klass, rb_v8_wrapper_gc_mark, rb_v8_wrapper_gc_free, r);
 }
 
 /*
- * Appends additional reference to ruby object wrapped with v8_ref.
+ * Appends additional reference to ruby object wrapped with v8_wrapper.
  *
  */
-void v8_ref_set(VALUE obj, const char *name, VALUE ref)
+void rb_v8_wrapper_aset(VALUE obj, const char *name, VALUE ref)
 {
-  v8_ref *r = 0;
-  Data_Get_Struct(obj, struct v8_ref, r);
+  rb_sV8Wrapper *r = 0;
+  Data_Get_Struct(obj, struct rb_sV8Wrapper, r);
   r->set(name, ref);
 }
 
 /*
- * Returns original object from which v8 reflection has been created.
+ * Returns specified referenced ruby object wrapped with v8_wrapper. 
  *
  */
-VALUE v8_ref_orig(VALUE obj)
+VALUE rb_v8_wrapper_aref(VALUE obj, const char *name)
 {
-  v8_ref *r = 0;
-  Data_Get_Struct(obj, struct v8_ref, r);
-  return r->origin;
+  rb_sV8Wrapper *r = 0;
+  Data_Get_Struct(obj, struct rb_sV8Wrapper, r);
+  return r->get(name);
 }
 
-/* The v8_ref struct methods. */
+/* The v8_wrapper struct methods. */
 
-v8_ref::v8_ref(Handle<void> object, VALUE orig/* = Qnil */)
+rb_sV8Wrapper::rb_sV8Wrapper(Handle<void> object)
 {
   handle = Persistent<void>::New(object);
   references = rb_hash_new();
-  origin = orig;
 }
 
-v8_ref::~v8_ref()
+rb_sV8Wrapper::~rb_sV8Wrapper()
 {
   handle.Dispose();
 }
 
-void v8_ref::set(const char *name, VALUE ref)
+void rb_sV8Wrapper::set(const char *name, VALUE ref)
 {
-  if (ref != 0 && RTEST(ref)) {
+  if (ref != 0 && RTEST(ref) && !NIL_P(ref)) {
     rb_hash_aset(references, rb_str_new2(name), ref);
   }
+}
+
+VALUE rb_sV8Wrapper::get(const char *name)
+{
+  return rb_hash_aref(references, rb_str_new2(name));
 }

@@ -57,10 +57,10 @@ static VALUE rb_v8_object_new(int argc, VALUE *argv, VALUE klass)
   
   switch (argc) {
   case 0:
-    self = v8_ref_new(klass, Object::New());
+    self = rb_v8_wrapper_new(klass, Object::New());
     break;
   case 1:
-    self = v8_ref_new(klass, to_v8_object(argv[0]));
+    self = rb_v8_wrapper_new(klass, to_v8_object(argv[0]));
     rb_iv_set(self, "@origin", argv[0]);
     break;
   default:

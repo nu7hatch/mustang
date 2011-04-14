@@ -2,8 +2,7 @@ module Mustang
   module V8
     class Function
       def call(*args, &block)
-        @receiver ||= nil
-        call_on(@receiver, *args, &block);
+        call_on(@receiver || nil, *args, &block);
       end
 
       def to_proc

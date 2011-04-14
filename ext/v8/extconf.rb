@@ -58,7 +58,6 @@ have_header('v8-debug.h')
 have_header('v8-profiler.h')
 have_func('rb_sym_to_s')
 have_func('rb_any_to_ary')
-have_var('rb_cMethod')
 
 CONFIG['LDSHARED'] = '$(CXX) -shared' unless darwin?
 

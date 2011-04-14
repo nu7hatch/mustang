@@ -30,7 +30,7 @@ static VALUE rb_v8_string_new(VALUE klass, VALUE data)
   HandleScope scope;
   PREVENT_CREATION_WITHOUT_CONTEXT();
   VALUE str = rb_funcall2(data, rb_intern("to_s"), 0, NULL);
-  return v8_ref_new(klass, to_v8_string(str));
+  return rb_v8_wrapper_new(klass, to_v8_string(str));
 }
 
 /*

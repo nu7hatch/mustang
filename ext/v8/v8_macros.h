@@ -1,12 +1,12 @@
 #ifndef __V8_MACROS_H
 #define __V8_MACROS_H
 
-#ifndef HAVE_RB_SYM_TO_S
-#define rb_sym_to_s(sym) rb_funcall2(sym, rb_intern("to_s"), 0, NULL)
+#ifndef rb_cMethod
+#define rb_cMethod rb_const_get(rb_cObject, rb_intern("Method"))
 #endif
 
-#ifndef HAVE_RB_CMETHOD
-#define rb_cMethod rb_const_get(rb_cObject, rb_intern("Method"))
+#ifndef HAVE_RB_SYM_TO_S
+#define rb_sym_to_s(sym) rb_funcall2(sym, rb_intern("to_s"), 0, NULL)
 #endif
 
 #ifndef HAVE_RB_ANY_TO_ARY
@@ -21,7 +21,7 @@
 #define UNWRAPPER(T)				\
   static Local<T> unwrap(VALUE self)		\
   {						\
-    return v8_ref_get<T>(self);			\
+    return v8_handle_from_wrapper<T>(self);					\
   }
 
 /* Checks if V8 is within some context, and raises proper exception if not. */

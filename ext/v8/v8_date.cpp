@@ -29,7 +29,7 @@ static VALUE rb_v8_date_new(VALUE klass, VALUE time)
 {
   HandleScope scope;
   PREVENT_CREATION_WITHOUT_CONTEXT();  
-  return v8_ref_new(klass, to_v8_date(time));
+  return rb_v8_wrapper_new(klass, to_v8_date(time));
 }
 
 /*

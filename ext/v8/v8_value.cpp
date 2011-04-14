@@ -27,7 +27,7 @@ static VALUE rb_v8_value_new(VALUE self, VALUE data)
     PREVENT_CREATION_WITHOUT_CONTEXT();
   }
   
-  return v8_ref_new(self, to_v8(data));
+  return rb_v8_wrapper_new(self, to_v8(data));
 }
 
 /*

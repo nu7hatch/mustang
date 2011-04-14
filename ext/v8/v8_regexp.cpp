@@ -64,9 +64,9 @@ static VALUE rb_v8_regexp_new(int argc, VALUE *argv, VALUE klass)
   PREVENT_CREATION_WITHOUT_CONTEXT();
 
   if (argc == 1) {
-    return v8_ref_new(klass, to_v8_regexp(argv[0]));
+    return rb_v8_wrapper_new(klass, to_v8_regexp(argv[0]));
   } else if (argc == 2) {
-    return v8_ref_new(klass, to_v8_regexp(argv[0], argv[1]));
+    return rb_v8_wrapper_new(klass, to_v8_regexp(argv[0], argv[1]));
   } else {
     rb_raise(rb_eArgError, "wrong number of arguments (%d for 1..2)", argc);
     return Qnil;

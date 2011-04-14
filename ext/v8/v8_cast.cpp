@@ -59,7 +59,7 @@ Handle<Value> to_v8(VALUE value)
     } else if (rb_obj_is_kind_of(value, rb_cMethod)) {
       return to_v8(rb_v8_function_new2(value));
     } else if (rb_obj_is_kind_of(value, rb_cV8Value)) {
-      return v8_ref_get<Value>(value);
+      return v8_handle_from_wrapper<Value>(value);
     } else if (rb_obj_is_kind_of(value, rb_cV8UndefinedClass)) {
       return Undefined();
     } else if (rb_obj_is_kind_of(value, rb_cV8NullClass)) {
