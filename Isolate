@@ -1,7 +1,5 @@
 # -*- ruby -*-
 
-gem "ore-tasks", "~> 0.4"
-
 env :development, :test do
   gem "rspec", "~> 2.5"
   gem "mocha", ">= 0.9"
