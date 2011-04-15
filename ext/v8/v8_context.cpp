@@ -21,8 +21,6 @@ UNWRAPPER(Context);
  */
 static VALUE rb_v8_context_current(VALUE klass)
 {
-  HandleScope scope;
-  
   if (Context::InContext()) {
     return rb_v8_wrapper_new(klass, Context::GetEntered());
   }
@@ -63,7 +61,6 @@ static VALUE rb_v8_context_enter(VALUE self)
 {
   HandleScope scope;
   Handle<Context> context = unwrap(self);
-
   VALUE entered = Qfalse;
 
   if (Context::GetEntered() != context) {
@@ -95,8 +92,6 @@ static VALUE rb_v8_context_enter(VALUE self)
  */
 static VALUE rb_v8_context_evaluate(VALUE self, VALUE source, VALUE filename)
 {
-  HandleScope scope;
-  
   Local<String> _source(String::Cast(*to_v8(source)));
   Local<String> _filename(String::Cast(*to_v8(filename)));
 
@@ -139,9 +134,7 @@ VALUE rb_v8_context_prototype(VALUE self)
  */
 static VALUE rb_v8_context_global(VALUE self)
 {
-  HandleScope scope;
-  Handle<Value> global = unwrap(self)->Global();
-  return to_ruby(global);
+  return to_ruby(unwrap(self)->Global());
 }
 
 /*
@@ -153,7 +146,6 @@ static VALUE rb_v8_context_global(VALUE self)
  */
 static VALUE rb_v8_context_entered_p(VALUE self)
 {
-  HandleScope scope;
   return unwrap(self) == Context::GetEntered() ? Qtrue : Qfalse;
 }
 
@@ -166,11 +158,8 @@ static VALUE rb_v8_context_entered_p(VALUE self)
  */
 static VALUE rb_v8_context_exit(VALUE self)
 {
-  HandleScope scope;
-  Handle<Context> context;
-  
   if (Context::InContext()) {
-    context->Exit();
+    unwrap(self)->Exit();
   }
   
   return Qnil;
@@ -185,8 +174,6 @@ static VALUE rb_v8_context_exit(VALUE self)
  */
 static VALUE rb_v8_context_exit_all_bang(VALUE klass)
 {
-  HandleScope scope;
-
   while (Context::InContext()) {
     Context::GetEntered()->Exit();
   }
