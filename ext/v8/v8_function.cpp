@@ -77,23 +77,11 @@ static VALUE rb_v8_function_new(int argc, VALUE *argv, VALUE klass)
   }
 
   VALUE self = rb_v8_wrapper_new(klass, to_v8_function(orig));
-  rb_v8_wrapper_aset(self, "origin", orig);
   rb_iv_set(self, "@receiver", Qnil);
+  rb_iv_set(self, "@origin", orig);
   v8_set_peer(self);
 
   return self;
-}
-
-/*
- * call-seq:
- *   func.origin  => proc or lambda or method
- *
- * Returns original object from which function has been reflected. 
- *
- */
-static VALUE rb_v8_function_origin(VALUE self)
-{
-  return rb_v8_wrapper_aref(self, "origin");
 }
 
 /*
@@ -192,6 +180,5 @@ void Init_V8_Function()
   rb_define_method(rb_cV8Function, "call_on", RUBY_METHOD_FUNC(rb_v8_function_call_on), -1);
   rb_define_method(rb_cV8Function, "name", RUBY_METHOD_FUNC(rb_v8_function_get_name), 0);
   rb_define_method(rb_cV8Function, "name=", RUBY_METHOD_FUNC(rb_v8_function_set_name), 1);
-  rb_define_method(rb_cV8Function, "origin", RUBY_METHOD_FUNC(rb_v8_function_origin), 0);
   rb_define_attr(rb_cV8Function, "receiver", 1, 0);
 }

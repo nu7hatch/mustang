@@ -1,7 +1,6 @@
 module Mustang
   module V8
     class Integer
-      include Comparable
       include Delegated
 
       def <=>(other)
@@ -14,6 +13,10 @@ module Mustang
 
       def kind_of?(klass)
         klass == ::Fixnum or super(klass)
+      end
+
+      def ==(other)
+        super(other) or to_i == other
       end
     end # Integer
   end # V8

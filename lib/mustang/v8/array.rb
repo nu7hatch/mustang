@@ -1,7 +1,6 @@
 module Mustang
   module V8
     class Array
-      include Comparable
       include Enumerable
       include Delegated
       
@@ -15,6 +14,10 @@ module Mustang
       
       def delegate
         to_a
+      end
+
+      def ==(other)
+        super(other) or to_a == other
       end
 
       def kind_of?(klass)

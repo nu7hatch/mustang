@@ -26,7 +26,7 @@ module Mustang
       end
 
       def ==(other)
-        to_bool == other
+        self.class == other.class or to_bool == other
       end
 
       def <=>(other)

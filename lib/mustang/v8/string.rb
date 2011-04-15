@@ -8,16 +8,18 @@ module Mustang
         def to_utf8
           native_to_utf8.force_encoding("UTF-8")
         end
+        alias_method :to_s, :to_utf8
       end
 
-      undef_method :to_s
-      alias_method :to_s, :to_utf8
-
-      include Comparable
       include Delegated
 
       def <=>(other)
         to_s <=> other
+      end
+
+      def ==(other)
+
+        super(other) or to_s == other
       end
 
       def delegate

@@ -41,8 +41,7 @@ static VALUE rb_v8_date_new(VALUE klass, VALUE time)
  */
 static VALUE rb_v8_date_to_i(VALUE self)
 {
-  HandleScope scope;
-  return rb_int_new(unwrap(self)->NumberValue());
+  return to_ruby(unwrap(self)->NumberValue());
 }
 
 /* Public constructors */

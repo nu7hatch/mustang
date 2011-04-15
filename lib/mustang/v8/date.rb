@@ -1,7 +1,6 @@
 module Mustang
   module V8
     class Date
-      include Comparable
       include Delegated
 
       def to_time
@@ -14,6 +13,10 @@ module Mustang
 
       def delegate
         to_time
+      end
+
+      def ==(other)
+        super(other) or to_time == other
       end
 
       def kind_of?(klass)

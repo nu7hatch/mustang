@@ -1,7 +1,6 @@
 module Mustang
   module V8
     class External
-      include Comparable
       include Delegated
       
       def <=>(other)
@@ -10,6 +9,10 @@ module Mustang
 
       def delegate
         to_obj
+      end
+
+      def ==(other)
+        super(other) or to_obj == other
       end
     end # External
   end # V8

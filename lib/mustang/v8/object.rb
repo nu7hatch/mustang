@@ -13,7 +13,11 @@ module Mustang
       end
       
       def respond_to?(meth) # :nodoc:
-        !self[meth].undefined? or super
+        if array?
+          super
+        else
+          !self[meth.to_s].undefined? or super
+        end
       end
 
       def method_missing(meth, *args, &block) # :nodoc:
@@ -28,7 +32,6 @@ module Mustang
         super
       end
 
-      include Comparable
       include Enumerable
       include Delegated
 
@@ -46,6 +49,10 @@ module Mustang
 
       def delegate
         to_hash
+      end
+
+      def ==(other)
+        super(other) or to_hash == other
       end
 
       private

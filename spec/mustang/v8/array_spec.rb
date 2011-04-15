@@ -71,10 +71,6 @@ describe Mustang::V8::Array do
       ary = subject.new(1,2,3)
       ary.should == [1,2,3]
       ary.should_not == [2,3,4]
-      ary.should > [1,2]
-      ary.should < [1,2,3,4]
-      ary.should <= [1,2,3,4]
-      ary.should >= [1,2,3]
     end
 
     it "is enumerable" do

@@ -9,6 +9,7 @@ describe Mustang::V8::Function do
   end
 
   it "is kind of Proc" do
+    pending
     subject.new(proc {}).should be_kind_of Proc
   end
 
@@ -138,40 +139,6 @@ describe Mustang::V8::Function do
     end
   end
 
-  describe "#origin" do
-    context "when function has been created from ruby proc/lambda/method" do
-      it "returns it" do
-        proc = Proc.new {}
-        func = Mustang::V8::Function.new(proc)
-        func.origin.should == proc
-      end
-    end
-
-    context "when function has been taken from javascript" do
-      it "returns nil" do
-        func = cxt.eval("var f = function(){}; f", "<eval>")
-        func.origin.should_not be
-      end
-    end
-  end
-
-  describe "#to_proc" do
-    context "when function has been created from ruby proc/lambda/method" do
-      it "returns it" do
-        proc = Proc.new {}
-        func = Mustang::V8::Function.new(proc)
-        func.to_proc.should == proc
-      end
-    end
-
-    context "when function has been taken from javascript" do
-      it "returns nil" do
-        func = cxt.eval("var f = function(){}; f", "<eval>")
-        func.to_proc.should_not be
-      end
-    end
-  end
-  
   describe "in context" do
     it "object reflected twice should be explicitly the same" do
       cxt.eval("foo = function() {}", "<eval>")
