@@ -5,6 +5,16 @@ module Mustang
 
   # Extended and more user-friendly version of <tt>Mustang::V8::Context</tt>.
   class Context < V8::Context
+    class << self
+      alias_method :native_new, :new
+
+      def new(locals={})
+        cxt = native_new()
+        cxt.set_all(locals)
+        cxt
+      end
+    end
+
     # Evaluates given javascript source. Before evaluation it's able to
     # set given local variables within current context, eg:
     #
@@ -14,9 +24,8 @@ module Mustang
     #   rt.evaliate("bar")                       # => 11
     #
     def evaluate(source, locals={}, filename="<eval>")
-      res = super(source, filename)
-      errors << res if res.v8? and res.error?
-      return res
+      set_all(locals)
+      super(source, filename)
     end
     alias_method :eval, :evaluate
 
@@ -30,14 +39,14 @@ module Mustang
         if File.exists?(filename)
           evaluate(File.read(filename), {}, filename)
         else
-          raise ScriptNotFoundError, "Script `#{filename}' does not exts."
+          raise ScriptNotFoundError, "script file `#{filename}' does not exist."
         end
       }.last
     end
 
-    # Returns list of errors encountered within this context. 
-    def errors
-      @errors ||= []
+    # Stores all given values to global prototype.
+    def set_all(values={})
+      values.each { |key, val| set(key, val) }
     end
   end # Context
 end # Mustang
