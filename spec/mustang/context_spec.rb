@@ -41,7 +41,7 @@ describe Mustang::Context do
 
     context "when file not found" do
       it "raises ScriptNotFoundError" do
-        expect { subject.load("notexists.js") }.to raise_error(Mustang::ScriptNotFoundError, "No such file or directory - script file `notexists.js' does not exist.")
+        expect { subject.load("notexists.js") }.to raise_error(Errno::ENOENT, "No such file or directory - script file `notexists.js' does not exist.")
       end
     end
   end
