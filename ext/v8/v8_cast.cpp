@@ -52,8 +52,10 @@ Handle<Value> to_v8(VALUE value)
   default:
     if (rb_obj_is_kind_of(value, rb_cRange)) {
       return to_v8(rb_any_to_ary(value));
+#ifndef RUBINIUS
     } else if (rb_obj_is_kind_of(value, rb_cTime)) {
       return to_v8(rb_v8_date_new2(value));
+#endif
     } else if (rb_obj_is_kind_of(value, rb_cProc)) {
       return to_v8(rb_v8_function_new2(value));
     } else if (rb_obj_is_kind_of(value, rb_cMethod)) {
@@ -74,6 +76,8 @@ Handle<Value> to_v8(VALUE value)
 
 VALUE to_ruby(Handle<Value> value)
 {
+  HandleScope scope;
+  
   if (value.IsEmpty()) {
     return rb_const_get(rb_mV8, rb_intern("Empty"));
   } else if (value->IsUndefined()) {
@@ -116,11 +120,11 @@ OVERLOAD_TO_RUBY_WITH(External);
 OVERLOAD_TO_RUBY_WITH(Object);
 
 VALUE to_ruby(bool value)     { return value ? Qtrue : Qfalse; }
-VALUE to_ruby(double value)   { return rb_float_new(value); }
 VALUE to_ruby(char *value)    { return rb_str_new2(value); }
 VALUE to_ruby(int64_t value)  { return LONG2NUM(value); }
 VALUE to_ruby(uint32_t value) { return UINT2NUM(value); }
 VALUE to_ruby(int32_t value)  { return INT2FIX(value); }
+VALUE to_ruby(double value)   { return rb_float_new(value); }
 
 /* V8::Cast module methods */
 

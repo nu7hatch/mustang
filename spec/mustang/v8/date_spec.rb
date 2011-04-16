@@ -13,8 +13,6 @@ describe Mustang::V8::Date do
   end
 
   it "is kind of Date, DateTime, Time" do
-    subject.new(@now).should be_kind_of Date
-    subject.new(@now).should be_kind_of DateTime
     subject.new(@now).should be_kind_of Time
   end
 

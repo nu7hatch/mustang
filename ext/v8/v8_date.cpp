@@ -13,7 +13,8 @@ UNWRAPPER(Date);
 
 Handle<Value> to_v8_date(VALUE value)
 {
-  return Date::New(NUM2DBL(value));
+  HandleScope scope;
+  return scope.Close(Date::New(NUM2DBL(value)));
 }
 
 /* V8::Date methods */
@@ -34,14 +35,14 @@ static VALUE rb_v8_date_new(VALUE klass, VALUE time)
 
 /*
  * call-seq:
- *   str.to_i  => value
+ *   str.value  => value
  *
  * Returns integer value representation of referenced v8 date.
  *
  */
-static VALUE rb_v8_date_to_i(VALUE self)
+static VALUE rb_v8_date_value(VALUE self)
 {
-  return to_ruby(unwrap(self)->NumberValue());
+  return rb_int_new((int)unwrap(self)->NumberValue());
 }
 
 /* Public constructors */
@@ -57,5 +58,5 @@ void Init_V8_Date()
 {
   rb_cV8Date = rb_define_class_under(rb_mV8, "Date", rb_cV8Value);
   rb_define_singleton_method(rb_cV8Date, "new", RUBY_METHOD_FUNC(rb_v8_date_new), 1);
-  rb_define_method(rb_cV8Date, "to_i", RUBY_METHOD_FUNC(rb_v8_date_to_i), 0);
+  rb_define_method(rb_cV8Date, "value", RUBY_METHOD_FUNC(rb_v8_date_value), 0);
 }

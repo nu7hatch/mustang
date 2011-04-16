@@ -24,10 +24,10 @@ VALUE to_ruby(Handle<Array> value);
 VALUE to_ruby(Handle<Object> value);
 
 VALUE to_ruby(bool value);
-VALUE to_ruby(double value);
 VALUE to_ruby(int64_t value);
 VALUE to_ruby(uint32_t value);
 VALUE to_ruby(int32_t value);
+VALUE to_ruby(double value);
 VALUE to_ruby(char *value);
 
 void Init_V8_Cast();

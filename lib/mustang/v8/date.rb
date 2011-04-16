@@ -4,7 +4,7 @@ module Mustang
       include Delegated
 
       def to_time
-        Time.at(to_i);
+        Time.at(value)
       end
       
       def <=>(other)
@@ -20,7 +20,7 @@ module Mustang
       end
 
       def kind_of?(klass)
-        klass == ::Time or klass == ::Date or klass == ::DateTime or super(klass)
+        klass == Time or super(klass)
       end
     end # Date
   end # V8

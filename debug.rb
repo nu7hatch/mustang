@@ -1,6 +1,9 @@
 $LOAD_PATH.unshift File.dirname(__FILE__) + "/lib"
 require 'rubygems'
+require 'mustang'
 
-Dir["spec/**/*_spec.rb"].each { |spec|
-  require spec
-}
+Mustang[:t] = Time.now
+
+#Dir["spec/**/*_spec.rb"].each { |spec|
+#  require spec
+#}

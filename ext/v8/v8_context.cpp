@@ -92,6 +92,7 @@ static VALUE rb_v8_context_enter(VALUE self)
  */
 static VALUE rb_v8_context_evaluate(VALUE self, VALUE source, VALUE filename)
 {
+  HandleScope scope;
   Local<String> _source(String::Cast(*to_v8(source)));
   Local<String> _filename(String::Cast(*to_v8(filename)));
 
