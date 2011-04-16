@@ -17,6 +17,12 @@
 #define RUBY_EXTERN extern
 #endif
 
+#ifdef RUBINIUS
+typedef unsigned int int_r;
+#else
+typedef int int_r;
+#endif
+
 /* Automaticly declares unwrap method for given type */
 #define UNWRAPPER(T)				\
   static Local<T> unwrap(VALUE self)		\

@@ -24,7 +24,7 @@ Handle<Value> to_v8_object(VALUE value)
 
     // TODO: for sure there is more efficient way to retrieve all hash
     // values and keys, some enumerator/iterator?
-    for (int i = 0; i < RARRAY_LEN(keys); i++) {
+    for (int_r i = 0; i < RARRAY_LEN(keys); i++) {
       VALUE key = rb_ary_entry(keys, i);
       obj->Set(to_v8(key)->ToString(), to_v8(rb_hash_aref(value, key)));
     }

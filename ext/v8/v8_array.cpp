@@ -16,7 +16,7 @@ Handle<Value> to_v8_array(VALUE value)
   HandleScope scope;
   Local<Array> ary = Array::New();
 
-  for (int i = 0; i < RARRAY_LEN(value); i++) {
+  for (int_r i = 0; i < RARRAY_LEN(value); i++) {
     ary->Set(i, to_v8(rb_ary_entry(value, i)));
   }
   
