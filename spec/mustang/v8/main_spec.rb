@@ -21,5 +21,9 @@ describe Mustang::V8 do
       subject.debugger!(3001).should be_true
       # TODO: more accurate examples?
     end
+
+    it "is aliased with .debug!" do
+      subject.debug!(3001).should be_true
+    end
   end
 end
