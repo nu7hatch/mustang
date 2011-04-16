@@ -15,4 +15,11 @@ describe Mustang::V8 do
     subject.should respond_to(:alive?)
     subject.should be_alive
   end
+
+  describe ".debugger!" do
+    it "starts debugger on given port" do
+      subject.debugger!(3001).should be_true
+      # TODO: more accurate examples?
+    end
+  end
 end
