@@ -4692,26 +4692,19 @@ void Isolate::Exit() {
 }
 
 
-String::Utf8Value::Utf8Value(v8::Handle<v8::Value> obj) {
+String::Utf8Value::Utf8Value(v8::Handle<v8::Value> obj)
+    : str_(NULL), length_(0) {
   i::Isolate* isolate = i::Isolate::Current();
   if (IsDeadCheck(isolate, "v8::String::Utf8Value::Utf8Value()")) return;
-  if (obj.IsEmpty()) {
-    str_ = NULL;
-    length_ = 0;
-    return;
-  }
+  if (obj.IsEmpty()) return;
   ENTER_V8(isolate);
   i::HandleScope scope(isolate);
   TryCatch try_catch;
   Handle<String> str = obj->ToString();
-  if (str.IsEmpty()) {
-    str_ = NULL;
-    length_ = 0;
-  } else {
-    length_ = str->Utf8Length();
-    str_ = i::NewArray<char>(length_ + 1);
-    str->WriteUtf8(str_);
-  }
+  if (str.IsEmpty()) return;
+  length_ = str->Utf8Length();
+  str_ = i::NewArray<char>(length_ + 1);
+  str->WriteUtf8(str_);
 }
 
 
@@ -4720,26 +4713,19 @@ String::Utf8Value::~Utf8Value() {
 }
 
 
-String::AsciiValue::AsciiValue(v8::Handle<v8::Value> obj) {
+String::AsciiValue::AsciiValue(v8::Handle<v8::Value> obj)
+    : str_(NULL), length_(0) {
   i::Isolate* isolate = i::Isolate::Current();
   if (IsDeadCheck(isolate, "v8::String::AsciiValue::AsciiValue()")) return;
-  if (obj.IsEmpty()) {
-    str_ = NULL;
-    length_ = 0;
-    return;
-  }
+  if (obj.IsEmpty()) return;
   ENTER_V8(isolate);
   i::HandleScope scope(isolate);
   TryCatch try_catch;
   Handle<String> str = obj->ToString();
-  if (str.IsEmpty()) {
-    str_ = NULL;
-    length_ = 0;
-  } else {
-    length_ = str->Length();
-    str_ = i::NewArray<char>(length_ + 1);
-    str->WriteAscii(str_);
-  }
+  if (str.IsEmpty()) return;
+  length_ = str->Length();
+  str_ = i::NewArray<char>(length_ + 1);
+  str->WriteAscii(str_);
 }
 
 
@@ -4748,26 +4734,19 @@ String::AsciiValue::~AsciiValue() {
 }
 
 
-String::Value::Value(v8::Handle<v8::Value> obj) {
+String::Value::Value(v8::Handle<v8::Value> obj)
+    : str_(NULL), length_(0) {
   i::Isolate* isolate = i::Isolate::Current();
   if (IsDeadCheck(isolate, "v8::String::Value::Value()")) return;
-  if (obj.IsEmpty()) {
-    str_ = NULL;
-    length_ = 0;
-    return;
-  }
+  if (obj.IsEmpty()) return;
   ENTER_V8(isolate);
   i::HandleScope scope(isolate);
   TryCatch try_catch;
   Handle<String> str = obj->ToString();
-  if (str.IsEmpty()) {
-    str_ = NULL;
-    length_ = 0;
-  } else {
-    length_ = str->Length();
-    str_ = i::NewArray<uint16_t>(length_ + 1);
-    str->Write(str_);
-  }
+  if (str.IsEmpty()) return;
+  length_ = str->Length();
+  str_ = i::NewArray<uint16_t>(length_ + 1);
+  str->Write(str_);
 }
 
 
