@@ -336,7 +336,8 @@ V8_EXTRA_FLAGS = {
                        '-Werror',
                        '-W',
                        '-Wno-unused-parameter',
-                       '-Wnon-virtual-dtor']
+                       '-Wnon-virtual-dtor',
+                       '-Wno-unused-but-set-variable']
     },
     'os:win32': {
       'WARNINGFLAGS': ['-pedantic', '-Wno-long-long']
